@@ -87,4 +87,50 @@ public class RebalancingScenarios
             PortfolioAssert.ValueIsConserved(valueBefore, portfolio.TotalValue(), orders);
         }
     }
+
+    [Fact]
+    public void ChangingTheTarget_MovesAnExistingPortfolioToTheNewWeights()
+    {
+        // Given a portfolio on its 40/60 target
+        var meta = _market.List("META", 500m);
+        var apple = _market.List("AAPL", 200m);
+        var portfolio = new Portfolio();
+        portfolio.Buy(meta, 4.8m);
+        portfolio.Buy(apple, 18m);
+        portfolio.SetAllocation(Weights((meta, 0.4m), (apple, 0.6m)));
+
+        // When the target changes to 50/50 and we rebalance
+        portfolio.SetAllocation(Weights((meta, 0.5m), (apple, 0.5m)));
+        var orders = portfolio.Rebalance();
+        portfolio.Apply(orders);
+
+        // Then AAPL is sold to buy META, and the new weights are reached
+        Assert.Equal([new Order(apple, Side.Sell, 3m), new Order(meta, Side.Buy, 1.2m)], orders);
+        PortfolioAssert.MatchesAllocation(portfolio);
+    }
+
+    [Fact]
+    public void NewTarget_BuysAStockThatEntersAndSellsOneThatLeaves()
+    {
+        // Given a portfolio of META and AAPL on its 40/60 target
+        var meta = _market.List("META", 500m);
+        var apple = _market.List("AAPL", 200m);
+        var google = _market.List("GOOG", 150m);
+        var portfolio = new Portfolio();
+        portfolio.Buy(meta, 4.8m);
+        portfolio.Buy(apple, 18m);
+        portfolio.SetAllocation(Weights((meta, 0.4m), (apple, 0.6m)));
+
+        // When the target becomes 50% META and 50% GOOG, so AAPL leaves and GOOG enters
+        portfolio.SetAllocation(Weights((meta, 0.5m), (google, 0.5m)));
+        var orders = portfolio.Rebalance();
+        portfolio.Apply(orders);
+
+        // Then AAPL is sold entirely, GOOG is bought, and AAPL is no longer held
+        Assert.Equal(
+            [new Order(apple, Side.Sell, 18m), new Order(google, Side.Buy, 20m), new Order(meta, Side.Buy, 1.2m)],
+            orders);
+        Assert.DoesNotContain(apple, portfolio.Holdings.Keys);
+        PortfolioAssert.MatchesAllocation(portfolio);
+    }
 }
