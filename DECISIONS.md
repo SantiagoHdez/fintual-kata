@@ -10,7 +10,7 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 
 | # | Decision | Status |
 |---|----------|--------|
-| 1 | Language and project setup | Decided (layout pending) |
+| 1 | Language and project setup | Decided (layout in D10) |
 | 2 | Domain model (Stock, price source, holdings/quantities) | Decided |
 | 3 | Numeric type for money and shares | Decided |
 | 4 | Allocation representation and validation | Decided |
@@ -19,7 +19,7 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 | 7 | Rebalance output (pure orders vs mutation) | Decided |
 | 8 | Edge cases | Decided |
 | 9 | Drift tolerance / minimum trade size | Decided |
-| 10 | Testing and documentation style | Open |
+| 10 | Testing and documentation style | Decided |
 
 ---
 
@@ -38,7 +38,7 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 
 **Rationale:** The author is most familiar with it. `decimal` is a built-in exact-decimal type suited to money, and records / immutable types keep the domain model concise.
 
-**Open sub-question:** project layout. Single project plus a test project in one solution, vs a single-file/minimal layout.
+**Project layout:** decided in D10.
 
 ---
 
@@ -241,3 +241,25 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 **Rationale:** The task asks for a portfolio balanced to its allocation. A threshold is a policy layer on top of that, and building it would violate YAGNI, consistent with the cash decision in D6.
 
 **Future extension (documented, not built):** A tolerance or minimum trade size. Caveat: skipping some trades breaks the sells-fund-buys balance of the self-financing model (D6), so a real implementation would have to drop or scale the matching trades too.
+
+---
+
+## D10: Project layout, testing and documentation
+
+**Status:** Decided.
+
+**Options considered:**
+- Layout: solution with a library and a test project (A); a single project (B); library, tests and a console demo (C).
+- Test framework: xUnit, NUnit, MSTest.
+- Strategy: test-first vs tests after.
+
+**Decisions:**
+- Layout (A): one solution with a library project in `src/` and a test project in `tests/`. No console demo; the tests demonstrate the behavior. Project names avoid clashing with the `Portfolio` class (proposed: `PortfolioRebalancing` and `PortfolioRebalancing.Tests`).
+- Test framework: xUnit with plain `Assert`. FluentAssertions is avoided because it is now commercially licensed.
+- Strategy: TDD. One behavior at a time, with a commit per step so the history tells the story. Planned order: `Stock`, `Portfolio` holdings, allocation validation, `Rebalance`, `Apply`.
+- Tests use a fake price source (the injected source from D2a), so no market feed is needed and "price changes between calls" can be tested.
+- Key scenarios: the spec example (40% META / 60% AAPL); already balanced; held-but-unallocated sold and allocated-but-unheld bought; empty portfolio; invalid allocations; non-positive prices; the rounding residual; `Apply` all-or-nothing; a second `Rebalance` after `Apply` returns an empty list; sell proceeds approximately equal buy cost within tolerance.
+- Documentation: simple XML doc comments on public types and methods. Inline comments are kept simple and used only where the code's intent may not be clear. `DECISIONS.md` is the narrative record. A `README.md` covers build and test instructions, a short description of the algorithm, assumptions and future extensions.
+- The LLM conversation is saved in the repo (e.g. `docs/conversation.md`) before submission.
+
+**Rationale:** The standard .NET layout is familiar to reviewers. TDD with small commits shows the reasoning step by step. Keeping comments sparse prevents noise and keeps the real decisions in `DECISIONS.md`.
