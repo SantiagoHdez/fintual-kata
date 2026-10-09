@@ -160,4 +160,20 @@ public sealed class Portfolio
             .ThenBy(order => order.Stock.Symbol, StringComparer.Ordinal)
             .ToList();
     }
+
+    /// <summary>Executes orders, such as the ones returned by <see cref="Rebalance"/>, in the order given.</summary>
+    public void Apply(IEnumerable<Order> orders)
+    {
+        foreach (var order in orders)
+        {
+            if (order.Side == Side.Sell)
+            {
+                Sell(order.Stock, order.Quantity);
+            }
+            else
+            {
+                Buy(order.Stock, order.Quantity);
+            }
+        }
+    }
 }
