@@ -17,7 +17,7 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 | 5 | Share granularity (fractional vs whole) and rounding | Decided |
 | 6 | Cash balance and self-financing rebalance | Decided |
 | 7 | Rebalance output (pure orders vs mutation) | Decided |
-| 8 | Edge cases | Open |
+| 8 | Edge cases | Decided |
 | 9 | Drift tolerance / minimum trade size | Open |
 | 10 | Testing and documentation style | Open |
 
@@ -204,3 +204,22 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 - Callers who want only sells or only buys filter the list.
 
 **Consequence for D8:** `Apply` can fail midway (for example a sell that exceeds holdings). Whether it validates everything first (all-or-nothing) is decided in D8.
+
+---
+
+## D8: Edge cases
+
+**Status:** Decided (all recommendations accepted).
+
+| # | Case | Decision |
+|---|------|----------|
+| 8a | Stock held but not in the allocation | Sell all of it (target weight 0). The allocation is the whole truth about what the portfolio should contain. |
+| 8b | Stock in the allocation but not held | Buy it (current quantity 0). |
+| 8c | Total value is 0 (empty portfolio) | Return an empty list. With no cash (D6) there is nothing to distribute, and nothing is wrong. |
+| 8d | `Rebalance` called with no allocation set | Throw `InvalidOperationException`. Returning an empty list would look like "already balanced". |
+| 8e | Price is zero or negative | Throw, naming the stock. Exceptions from the price source propagate unchanged. Each price is read once per rebalance (D2a). |
+| 8f | `Buy`/`Sell` input | Quantity must be > 0. A sell cannot exceed the quantity held (a rounded sell is clamped to the shares held, see D5). Selling the whole position removes it from the holdings. Violations throw. |
+| 8g | `Apply` atomicity | All-or-nothing: validate every order first, then change anything. A half-applied rebalance is neither the old state nor the target. |
+| 8h | Stock identity | Reject null/blank symbols, trim, and uppercase on construction. Equality is by (normalized) symbol. |
+
+**Rationale:** Fail loudly on misuse and on corrupt data (bad prices, invalid quantities) rather than returning plausible-looking but wrong results. Treat "nothing to do" situations (empty portfolio, already balanced) as normal results, not errors.
