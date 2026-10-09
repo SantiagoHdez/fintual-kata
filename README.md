@@ -33,6 +33,39 @@ IReadOnlyList<Order> orders = portfolio.Rebalance();
 portfolio.Apply(orders);   // optional: execute the orders
 ```
 
+## Command line
+
+A small CLI lets you try the module without writing C#. It reads a portfolio as JSON from a file, or from stdin when no file is given, and prints the orders that rebalance it as JSON.
+
+```bash
+dotnet run --project src/PortfolioRebalancing.Cli -- samples/example.json
+cat samples/example.json | dotnet run --project src/PortfolioRebalancing.Cli
+```
+
+Input (`samples/example.json`):
+
+```json
+{
+  "holdings": [{ "symbol": "META", "quantity": 10 }, { "symbol": "AAPL", "quantity": 5 }],
+  "prices": { "META": 500, "AAPL": 200 },
+  "allocation": { "META": 0.4, "AAPL": 0.6 }
+}
+```
+
+Output:
+
+```json
+{ "orders": [
+  { "symbol": "META", "side": "Sell", "quantity": 5.2 },
+  { "symbol": "AAPL", "side": "Buy", "quantity": 13 }
+] }
+```
+
+- All three properties are required, and unknown properties are rejected, so a typo is an error and not silently ignored.
+- Every held or allocated symbol needs a price. Symbols are matched ignoring case and spaces.
+- Exit codes: `0` success, `1` invalid input or unreadable file (the reason is on stderr and stdout stays empty), `2` wrong usage. `--help` shows the usage.
+- Prices are fixed numbers, so the CLI shows one rebalance. It does not apply the plan.
+
 ## How it works
 
 1. Read the price of every stock that is held or in the allocation, once. The rest of the calculation uses that snapshot.
@@ -48,7 +81,9 @@ portfolio.Apply(orders);   // optional: execute the orders
 
 ```
 src/PortfolioRebalancing/          Stock, Portfolio, Order, Side
-tests/PortfolioRebalancing.Tests/  unit tests, plus Scenarios/ with end-to-end stories
+src/PortfolioRebalancing.Cli/      small JSON command line (see above)
+tests/PortfolioRebalancing.Tests/  unit tests, Scenarios/ with end-to-end stories, Cli/ tests
+samples/example.json               input for the command line
 DECISIONS.md                       design decisions, options and tradeoffs
 CLAUDE.md                          working agreement and conventions for the LLM pair
 ```

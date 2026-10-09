@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/PortfolioRebalancing.Cli/PortfolioRebalancing.Cli.csproj" />
     <Project Path="src/PortfolioRebalancing/PortfolioRebalancing.csproj" />
   </Folder>
   <Folder Name="/tests/">
