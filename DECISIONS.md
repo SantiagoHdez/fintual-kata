@@ -264,7 +264,7 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 - Tests use a fake price source (the injected source from D2a), so no market feed is needed and "price changes between calls" can be tested.
 - Key scenarios: the spec example (40% META / 60% AAPL); already balanced; held-but-unallocated sold and allocated-but-unheld bought; empty portfolio; invalid allocations; non-positive prices; the rounding residual; `Apply` all-or-nothing; a second `Rebalance` after `Apply` returns an empty list; sell proceeds approximately equal buy cost within tolerance.
 - Documentation: simple XML doc comments on public types and methods. Inline comments are kept simple and used only where the code's intent may not be clear. `DECISIONS.md` is the narrative record. A `README.md` covers build and test instructions, a short description of the algorithm, assumptions and future extensions.
-- The LLM conversation is saved in the repo (e.g. `docs/conversation.md`) before submission.
+- The LLM conversation is saved in the repo (e.g. `docs/conversation.txt`) before submission.
 
 **Rationale:** The standard .NET layout is familiar to reviewers. TDD with small commits shows the reasoning step by step. Keeping comments sparse prevents noise and keeps the real decisions in `DECISIONS.md`.
 
