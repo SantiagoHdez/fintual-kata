@@ -296,3 +296,16 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 9. An empty portfolio: no cash means nothing can be bought (the D6 limitation).
 
 **Rationale:** The unit tests check single rules. Scenarios show the module working through realistic sequences and double as executable documentation of the behavior and its limits.
+
+---
+
+## Refinements made while implementing
+
+Small changes to earlier decisions that came up in the code. The original text above is kept as it was written.
+
+- **D7: `Apply` runs the orders in the order given.** An earlier idea was to apply sells before buys whatever the input order. It was dropped: `Rebalance` already lists sells first, and extra ordering rules were not needed. `Apply` accepts any `IEnumerable<Order>`.
+- **D7: `Apply` copies back into the same dictionary.** After applying to a working copy, the result is copied into the portfolio's own dictionary, so a `Holdings` view obtained earlier stays valid.
+- **D8: all-or-nothing is shared with `Buy`/`Sell`.** `Apply`, `Buy` and `Sell` use the same private helpers, so there is one copy of the quantity rules.
+- **D8: an empty portfolio still reads the prices of the allocated stocks.** A non-positive price on an allocated stock therefore throws even when there is nothing to trade.
+- **D5: a full sell can exceed 4 decimals.** When a stock is sold entirely and the holding itself has more than 4 decimals (for example 1.00007), the order uses the exact holding, so no sliver of the position is left. This is the "never sell more than held" cap.
+- **D6/D11: the tolerance is a bound, not a constant.** The tests allow buys and sells to differ by half a rounding step per order times its price, instead of a fixed number.
