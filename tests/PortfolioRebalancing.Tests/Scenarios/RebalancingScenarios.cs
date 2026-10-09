@@ -187,4 +187,45 @@ public class RebalancingScenarios
         portfolio.Apply(plan);
         PortfolioAssert.MatchesAllocation(portfolio);
     }
+
+    [Fact]
+    public void StalePlan_StillExecutesButLeavesThePortfolioOffTarget()
+    {
+        // Given a plan made while META costs 500 and AAPL 200
+        var meta = _market.List("META", 500m);
+        var apple = _market.List("AAPL", 200m);
+        var portfolio = new Portfolio();
+        portfolio.Buy(meta, 10m);
+        portfolio.Buy(apple, 5m);
+        portfolio.SetAllocation(Weights((meta, 0.4m), (apple, 0.6m)));
+        var plan = portfolio.Rebalance();
+
+        // When prices move before the plan is applied
+        _market.SetPrice("META", 400m);
+        _market.SetPrice("AAPL", 220m);
+        portfolio.Apply(plan);
+
+        // Then the orders still run, because they are share quantities, but META ends well below 40%
+        var metaShare = portfolio.Holdings[meta] * meta.CurrentPrice() / portfolio.TotalValue();
+        Assert.InRange(0.4m - metaShare, 0.05m, 1m);
+
+        // And planning again gives a new correction, so a plan should be applied right after it is made
+        Assert.NotEmpty(portfolio.Rebalance());
+    }
+
+    [Fact]
+    public void EmptyPortfolio_HasNothingToTradeBecauseThereIsNoCash()
+    {
+        // Given a target allocation but no holdings and no cash
+        var meta = _market.List("META", 500m);
+        var apple = _market.List("AAPL", 200m);
+        var portfolio = new Portfolio();
+        portfolio.SetAllocation(Weights((meta, 0.4m), (apple, 0.6m)));
+
+        // When we rebalance
+        var orders = portfolio.Rebalance();
+
+        // Then there is nothing to buy with, so no orders are made
+        Assert.Empty(orders);
+    }
 }
