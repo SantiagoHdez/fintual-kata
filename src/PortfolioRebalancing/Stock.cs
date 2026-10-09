@@ -1,7 +1,7 @@
 namespace PortfolioRebalancing;
 
 /// <summary>A tradable stock that can report its last available price.</summary>
-public sealed class Stock
+public sealed class Stock : IEquatable<Stock>
 {
     private readonly Func<decimal> _priceSource;
 
@@ -20,4 +20,13 @@ public sealed class Stock
 
     /// <summary>Returns the last available price.</summary>
     public decimal CurrentPrice() => _priceSource();
+
+    /// <summary>Two stocks are equal when they have the same symbol, whatever their price source.</summary>
+    public bool Equals(Stock? other) => other is not null && Symbol == other.Symbol;
+
+    public override bool Equals(object? obj) => Equals(obj as Stock);
+
+    public override int GetHashCode() => Symbol.GetHashCode();
+
+    public override string ToString() => Symbol;
 }

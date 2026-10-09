@@ -40,4 +40,23 @@ public class StockTests
     {
         Assert.Throws<ArgumentNullException>(() => new Stock("META", null!));
     }
+
+    [Fact]
+    public void Equals_ComparesBySymbolIgnoringPrice()
+    {
+        var first = new Stock("META", () => 500m);
+        var second = new Stock(" meta", () => 999m);
+
+        Assert.Equal(first, second);
+        Assert.Equal(first.GetHashCode(), second.GetHashCode());
+        Assert.NotEqual(first, new Stock("AAPL", () => 500m));
+    }
+
+    [Fact]
+    public void Stock_WorksAsDictionaryKey()
+    {
+        var holdings = new Dictionary<Stock, decimal> { [new Stock("META", () => 500m)] = 2m };
+
+        Assert.Equal(2m, holdings[new Stock("meta", () => 1m)]);
+    }
 }
