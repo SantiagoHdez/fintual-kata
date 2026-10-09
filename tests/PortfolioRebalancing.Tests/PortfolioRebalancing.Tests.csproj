@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\PortfolioRebalancing\PortfolioRebalancing.csproj" />
+    <ProjectReference Include="..\..\src\PortfolioRebalancing.Cli\PortfolioRebalancing.Cli.csproj" />
   </ItemGroup>
 
 </Project>
