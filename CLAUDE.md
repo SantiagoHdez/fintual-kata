@@ -71,5 +71,6 @@ Follow the Microsoft conventions: [C# coding conventions](https://learn.microsof
 - **D11 Scenarios:** plain xUnit with Given/When/Then comments in `tests/.../Scenarios/`, trait `Category=Scenario`, a `FakeMarket` helper with changeable prices, invariants asserted inside each scenario (no property-based tests). Nine scenarios listed in `DECISIONS.md`.
 
 - **Refinements:** see the last section of `DECISIONS.md` (Apply order, live `Holdings` view, full-sell cap, empty-portfolio price check).
+- **D12 CLI:** `src/PortfolioRebalancing.Cli` reads JSON (holdings, prices, allocation) from a file argument or stdin and prints the plan as JSON. Logic in a testable function from JSON text to JSON text; `Main` only wires streams. Exit codes 0 ok, 1 invalid input or failure (stderr), 2 usage. Library untouched. Tests in the existing test project under `Cli/`.
 
 (Keep this list in sync with `DECISIONS.md`.)

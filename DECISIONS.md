@@ -21,6 +21,7 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 | 9 | Drift tolerance / minimum trade size | Decided |
 | 10 | Testing and documentation style | Decided |
 | 11 | Scenario testing | Decided |
+| 12 | Small JSON CLI | Decided |
 
 ---
 
@@ -257,7 +258,7 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 - Strategy: test-first vs tests after.
 
 **Decisions:**
-- Layout (A): one solution with a library project in `src/` and a test project in `tests/`. No console demo; the tests demonstrate the behavior. Project names avoid clashing with the `Portfolio` class (proposed: `PortfolioRebalancing` and `PortfolioRebalancing.Tests`).
+- Layout (A): one solution with a library project in `src/` and a test project in `tests/`. No console demo; the tests demonstrate the behavior. (Superseded in part by D12, which adds a small CLI.) Project names avoid clashing with the `Portfolio` class (proposed: `PortfolioRebalancing` and `PortfolioRebalancing.Tests`).
 - Test framework: xUnit with plain `Assert`. FluentAssertions is avoided because it is now commercially licensed.
 - Strategy: TDD. One behavior at a time, with a commit per step so the history tells the story. Planned order: `Stock`, `Portfolio` holdings, allocation validation, `Rebalance`, `Apply`.
 - Tests use a fake price source (the injected source from D2a), so no market feed is needed and "price changes between calls" can be tested.
@@ -296,6 +297,57 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 9. An empty portfolio: no cash means nothing can be bought (the D6 limitation).
 
 **Rationale:** The unit tests check single rules. Scenarios show the module working through realistic sequences and double as executable documentation of the behavior and its limits.
+
+---
+
+## D12: A small JSON CLI
+
+**Status:** Decided. This reverses the "no console demo" part of D10.
+
+**Options considered:**
+- A: no CLI; the README example and the scenarios are the demo.
+- B: minimal CLI project that reads JSON and prints the rebalance plan as JSON.
+- C: like B, but it also applies the plan and prints the portfolio afterwards.
+- D: a single-file .NET 10 script (`dotnet run demo.cs`) instead of a project.
+
+**Decisions:**
+- B. A new project `src/PortfolioRebalancing.Cli`, added to the solution. It uses only the library's public API, and the library is not changed.
+- Input comes from a file given as the only argument, or from stdin when there is no argument.
+- Output is JSON only, written to stdout. No table format.
+- The logic lives in a function that takes the JSON text and returns the JSON text, so tests can run it without starting a process. `Main` only handles arguments, files and streams.
+- Exit codes: 0 on success, 1 for invalid input or a failed rebalance (message on stderr, nothing on stdout), 2 for wrong usage.
+- Tests live in the existing test project under `Cli/`, which references the CLI project.
+
+**Input:**
+```json
+{
+  "holdings":   [{ "symbol": "META", "quantity": 10 }, { "symbol": "AAPL", "quantity": 5 }],
+  "prices":     { "META": 500, "AAPL": 200 },
+  "allocation": { "META": 0.4, "AAPL": 0.6 }
+}
+```
+
+**Output:**
+```json
+{ "orders": [
+  { "symbol": "META", "side": "Sell", "quantity": 5.2 },
+  { "symbol": "AAPL", "side": "Buy",  "quantity": 13 }
+] }
+```
+
+**Rules:**
+- All three properties are required. Unknown properties are rejected, so a typo such as `alocation` is an error and not silently ignored.
+- Numbers are read as `decimal`, never `double`, to keep the exactness chosen in D3.
+- Every held or allocated symbol needs a price. Symbols are matched ignoring case and surrounding spaces, like `Stock`.
+- A symbol listed twice in `holdings` adds up. A symbol repeated in `prices` or `allocation` (ignoring case) is an error.
+- The library's own validation applies as it does everywhere else (positive quantities and prices, allocation rules).
+
+**Rationale:** It lets a reviewer try the module in seconds without reading C#, and the JSON documents the data contract. It stays small and additive, so the core deliverable is not touched.
+
+**Tradeoffs accepted:**
+- It goes beyond what the task asks, and adds a project to review.
+- Prices from JSON are fixed numbers, so the CLI shows one rebalance and cannot show prices drifting over time. The scenarios cover that.
+- It does not apply the plan (option C was not chosen).
 
 ---
 
