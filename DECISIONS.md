@@ -348,7 +348,7 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 - It goes beyond what the task asks, and adds a project to review.
 - Prices from JSON are fixed numbers, so the CLI shows one rebalance and cannot show prices drifting over time. The scenarios cover that.
 - It does not apply the plan (option C was not chosen).
-- Error messages for malformed or incomplete JSON, and for values the library rejects, are the messages of the underlying exceptions, shown as they are. They say what is wrong but are not polished (for example, one names an internal type). Rewording them was not worth the extra code.
+- Error messages are reworded in plain language. The library's messages are kept but trimmed to their first line. The serializer's messages mention internal type names, so three common problems (an unknown property, a missing required property, and a value of the wrong type or malformed JSON) are translated, with the path of the problem (for example `$.prices.META`). This translation reads the serializer's message text with small regular expressions, which is fragile across .NET versions; the tests pin the exact wording so a change would be caught. The line and position the serializer reports mark where parsing stopped, which is just after the bad value, so the path is the more reliable locator.
 
 ---
 

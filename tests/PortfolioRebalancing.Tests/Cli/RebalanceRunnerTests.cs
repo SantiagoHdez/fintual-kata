@@ -63,28 +63,74 @@ public class RebalanceRunnerTests
 
     public static TheoryData<string, string> InvalidInputs => new()
     {
-        { "{", "JSON" },
-        { "null", "JSON object" },
-        { "{ \"holdings\": [], \"prices\": {} }", "allocation" },
-        { "{ \"holdings\": [], \"prices\": {}, \"alocation\": {} }", "alocation" },
-        { Input("[{ \"symbol\": \"GOOG\", \"quantity\": 1 }]", GoodPrices, GoodAllocation), "GOOG" },
-        { Input(GoodHoldings, GoodPrices, "{ \"META\": 0.5, \"GOOG\": 0.5 }"), "GOOG" },
-        { Input(GoodHoldings, "{ \"META\": 500, \"meta\": 501 }", "{ \"META\": 1 }"), "more than once" },
-        { Input(GoodHoldings, GoodPrices, "{ \"META\": 0.4, \"meta\": 0.6 }"), "more than once" },
-        { Input("[{ \"symbol\": \"META\", \"quantity\": 0 }]", GoodPrices, GoodAllocation), "quantity" },
-        { Input(GoodHoldings, GoodPrices, "{ \"META\": 0.5, \"AAPL\": 0.6 }"), "sum" },
-        { Input(GoodHoldings, GoodPrices, "{}"), "allocation" },
-        { Input(GoodHoldings, "{ \"META\": 0, \"AAPL\": 200 }", GoodAllocation), "META" },
-        { Input("[{ \"symbol\": \" \", \"quantity\": 1 }]", GoodPrices, GoodAllocation), "price" },
+        { "null", "The input must be a JSON object." },
+        { "{ \"holdings\": [], \"prices\": {} }", "The 'allocation' property is required." },
+        { "{ \"holdings\": [], \"prices\": {}, \"alocation\": {} }", "Unknown property 'alocation'." },
+        {
+            Input("[{ \"symbol\": \"META\" }]", GoodPrices, GoodAllocation),
+            "The 'quantity' property is required at $.holdings[0]."
+        },
+        {
+            Input("[{ \"symbol\": \"META\", \"quantity\": 1, \"qty\": 2 }]", GoodPrices, GoodAllocation),
+            "Unknown property 'qty' at $.holdings[0]."
+        },
+        {
+            Input(GoodHoldings, "{ \"META\": \"cheap\" }", GoodAllocation),
+            "The input is not valid at $.prices.META (line 1, position 82)."
+        },
+        {
+            Input("[{ \"symbol\": \"GOOG\", \"quantity\": 1 }]", GoodPrices, GoodAllocation),
+            "No price was given for 'GOOG'."
+        },
+        {
+            Input(GoodHoldings, GoodPrices, "{ \"META\": 0.5, \"GOOG\": 0.5 }"),
+            "No price was given for 'GOOG'."
+        },
+        {
+            Input(GoodHoldings, "{ \"META\": 500, \"meta\": 501 }", "{ \"META\": 1 }"),
+            "'meta' is listed more than once in prices."
+        },
+        {
+            Input(GoodHoldings, GoodPrices, "{ \"META\": 0.4, \"meta\": 0.6 }"),
+            "'meta' is listed more than once in allocation."
+        },
+        {
+            Input("[{ \"symbol\": \"META\", \"quantity\": 0 }]", GoodPrices, GoodAllocation),
+            "The quantity of 'META' in holdings must be positive, but was 0."
+        },
+        {
+            Input(GoodHoldings, GoodPrices, "{ \"META\": 0.5, \"AAPL\": 0.6 }"),
+            "The weights must sum to exactly 1, but sum to 1.1."
+        },
+        {
+            Input(GoodHoldings, GoodPrices, "{ \"META\": 1.5 }"),
+            "The weight of META must be greater than 0 and at most 1."
+        },
+        { Input(GoodHoldings, GoodPrices, "{}"), "The allocation must contain at least one stock." },
+        {
+            Input(GoodHoldings, "{ \"META\": 0, \"AAPL\": 200 }", GoodAllocation),
+            "The price of META must be positive, but was 0."
+        },
+        { Input("[{ \"symbol\": \" \", \"quantity\": 1 }]", GoodPrices, GoodAllocation), "A symbol is empty." },
+        { Input(GoodHoldings, "{ \" \": 500, \"META\": 500 }", GoodAllocation), "A symbol is empty." },
     };
 
     [Theory]
     [MemberData(nameof(InvalidInputs))]
-    public void Run_RejectsInvalidInputWithAMessageThatSaysWhy(string json, string expectedInMessage)
+    public void Run_RejectsInvalidInputWithAMessageThatSaysWhy(string json, string expectedMessage)
     {
         var exception = Assert.Throws<InputException>(() => RebalanceRunner.Run(json));
 
-        Assert.Contains(expectedInMessage, exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(expectedMessage, exception.Message);
+    }
+
+    [Fact]
+    public void Run_SaysWhereMalformedJsonStops()
+    {
+        var exception = Assert.Throws<InputException>(() => RebalanceRunner.Run("{ \"holdings\": ["));
+
+        Assert.StartsWith("The input is not valid at $", exception.Message);
+        Assert.Contains("line 1", exception.Message);
     }
 
     [Fact]
