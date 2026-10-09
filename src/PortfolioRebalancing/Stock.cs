@@ -9,7 +9,7 @@ public sealed class Stock
     /// <param name="priceSource">Returns the last available price each time it is called.</param>
     public Stock(string symbol, Func<decimal> priceSource)
     {
-        Symbol = symbol;
+        Symbol = symbol.Trim().ToUpperInvariant();
         _priceSource = priceSource;
     }
 
