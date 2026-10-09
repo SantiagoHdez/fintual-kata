@@ -23,5 +23,6 @@ Take-home kata: a portfolio management module for a personal investments/trading
 - **D5 Rounding:** fractional shares (`decimal` quantities). Round only final order quantities, to 4 decimals, banker's rounding (`ToEven`). Intermediate math keeps full precision. Clamp sells to shares held (D8); tolerate tiny buy/sell residual (D6).
 - **D4 Allocation:** `Dictionary<Stock, decimal>` of fractions on `Portfolio`. Validated on set (fail fast): non-empty, each weight in (0, 1], sum exactly 1.
 - **D6 Cash:** no cash balance; rebalance is self-financing. Rounding residual accepted and documented; tests use a small tolerance. Keep the "amount to distribute" in one calculation so cash can be added later (YAGNI: do not build it now).
+- **D7 Output:** `Rebalance()` is pure and returns a flat list of immutable `Order(Stock, Side, Quantity)` (positive quantity, sells before buys, zero-quantity orders dropped). A separate `Apply(orders)` executes them through `Buy`/`Sell`.
 
 (Keep this list in sync with `DECISIONS.md`.)

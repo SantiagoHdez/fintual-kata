@@ -16,7 +16,7 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 | 4 | Allocation representation and validation | Decided |
 | 5 | Share granularity (fractional vs whole) and rounding | Decided |
 | 6 | Cash balance and self-financing rebalance | Decided |
-| 7 | Rebalance output (pure orders vs mutation) | Open |
+| 7 | Rebalance output (pure orders vs mutation) | Decided |
 | 8 | Edge cases | Open |
 | 9 | Drift tolerance / minimum trade size | Open |
 | 10 | Testing and documentation style | Open |
@@ -180,3 +180,27 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 **Tradeoffs accepted:**
 - Cannot deploy newly deposited money or hold a cash buffer.
 - The rounding residual has nowhere to go; it is tolerated rather than tracked.
+
+---
+
+## D7: Rebalance output and mutation
+
+**Status:** Decided.
+
+**Options considered:**
+- 7a: `Rebalance` is pure and returns orders (A); applies trades itself (B); both, as separate operations (C).
+- 7b: flat list of orders; result object with separate `Sells`/`Buys`; signed quantity per stock.
+- 7c: include only stocks that need a trade, or every stock.
+
+**Decisions:**
+- 7a (C): `Rebalance()` is pure. It reads prices, computes the plan, and returns it without touching the portfolio. A separate operation applies a plan (`Apply(orders)`, executed through the portfolio's `Buy`/`Sell`). Exact naming can be refined when writing the code.
+- 7b: the result is a flat list of immutable `Order(Stock, Side, Quantity)` records. `Side` is `Buy` or `Sell`, and quantity is always positive. Sells are listed before buys, which is the natural execution order for a self-financing rebalance.
+- 7c: only stocks that need a trade appear. An order whose rounded quantity is 0 is dropped, so an empty list means "already balanced".
+
+**Rationale:** Separating planning from execution keeps `Rebalance` free of side effects (safe to call repeatedly, easy to test, previewable) while still letting the mutable portfolio (D2c) apply the plan. A flat list with positive quantities is the simplest shape to iterate, print and assert on.
+
+**Tradeoffs accepted:**
+- Slightly larger API than the task strictly asks for (`Apply` is extra).
+- Callers who want only sells or only buys filter the list.
+
+**Consequence for D8:** `Apply` can fail midway (for example a sell that exceeds holdings). Whether it validates everything first (all-or-nothing) is decided in D8.
