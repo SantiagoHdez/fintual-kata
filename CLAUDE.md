@@ -25,5 +25,6 @@ Take-home kata: a portfolio management module for a personal investments/trading
 - **D6 Cash:** no cash balance; rebalance is self-financing. Rounding residual accepted and documented; tests use a small tolerance. Keep the "amount to distribute" in one calculation so cash can be added later (YAGNI: do not build it now).
 - **D7 Output:** `Rebalance()` is pure and returns a flat list of immutable `Order(Stock, Side, Quantity)` (positive quantity, sells before buys, zero-quantity orders dropped). A separate `Apply(orders)` executes them through `Buy`/`Sell`.
 - **D8 Edge cases:** held-but-unallocated stock is sold entirely; allocated-but-unheld is bought; total value 0 returns an empty list; no allocation set throws `InvalidOperationException`; non-positive price throws naming the stock; `Buy`/`Sell` validate (qty > 0, sell <= held, full sell removes entry); `Apply` is all-or-nothing; symbols are trimmed/uppercased, null/blank rejected, equality by symbol.
+- **D9 Threshold:** none. Trade whenever the rounded delta is not 0. Tolerance / minimum trade size is a documented future extension (self-financing caveat), not built.
 
 (Keep this list in sync with `DECISIONS.md`.)

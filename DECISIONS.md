@@ -18,7 +18,7 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 | 6 | Cash balance and self-financing rebalance | Decided |
 | 7 | Rebalance output (pure orders vs mutation) | Decided |
 | 8 | Edge cases | Decided |
-| 9 | Drift tolerance / minimum trade size | Open |
+| 9 | Drift tolerance / minimum trade size | Decided |
 | 10 | Testing and documentation style | Open |
 
 ---
@@ -223,3 +223,21 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 | 8h | Stock identity | Reject null/blank symbols, trim, and uppercase on construction. Equality is by (normalized) symbol. |
 
 **Rationale:** Fail loudly on misuse and on corrupt data (bad prices, invalid quantities) rather than returning plausible-looking but wrong results. Treat "nothing to do" situations (empty portfolio, already balanced) as normal results, not errors.
+
+---
+
+## D9: Drift tolerance and minimum trade size
+
+**Status:** Decided.
+
+**Options considered:**
+- A: no threshold; trade whenever the rounded delta is not 0.
+- B: drift tolerance (skip stocks within a band around their target).
+- C: minimum trade value (skip small orders).
+- D: optional threshold parameter defaulting to "none".
+
+**Decision:** A. No threshold. The only filtering is dropping orders whose quantity rounds to 0 (D5, D7).
+
+**Rationale:** The task asks for a portfolio balanced to its allocation. A threshold is a policy layer on top of that, and building it would violate YAGNI, consistent with the cash decision in D6.
+
+**Future extension (documented, not built):** A tolerance or minimum trade size. Caveat: skipping some trades breaks the sells-fund-buys balance of the self-financing model (D6), so a real implementation would have to drop or scale the matching trades too.
