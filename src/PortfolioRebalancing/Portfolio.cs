@@ -3,6 +3,9 @@ namespace PortfolioRebalancing;
 /// <summary>A set of stock holdings that can be bought and sold.</summary>
 public sealed class Portfolio
 {
+    // Order quantities are rounded to this many decimals, with banker's rounding.
+    private const int QuantityDecimals = 4;
+
     private readonly Dictionary<Stock, decimal> _holdings = [];
     private Dictionary<Stock, decimal> _allocation = [];
 
@@ -92,6 +95,69 @@ public sealed class Portfolio
     /// </remarks>
     public decimal TotalValue()
     {
-        return _holdings.Sum(holding => holding.Value * holding.Key.CurrentPrice());
+        return ValueAt(ReadPrices(_holdings.Keys));
+    }
+
+    // Prices can change between calls, so each stock is read once and the result is reused.
+    private static Dictionary<Stock, decimal> ReadPrices(IEnumerable<Stock> stocks)
+    {
+        return stocks.ToDictionary(stock => stock, stock => stock.CurrentPrice());
+    }
+
+    private decimal ValueAt(Dictionary<Stock, decimal> prices)
+    {
+        return _holdings.Sum(holding => holding.Value * prices[holding.Key]);
+    }
+
+    /// <summary>
+    /// Works out the trades that bring the portfolio to its target allocation, without changing the portfolio.
+    /// Sells come first, then buys, each sorted by symbol.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">No allocation has been set.</exception>
+    public IReadOnlyList<Order> Rebalance()
+    {
+        if (_allocation.Count == 0)
+        {
+            throw new InvalidOperationException("Set an allocation before rebalancing.");
+        }
+
+        var stocks = _holdings.Keys.Union(_allocation.Keys).ToList();
+        var prices = ReadPrices(stocks);
+        var total = ValueAt(prices);
+
+        if (total == 0)
+        {
+            return [];
+        }
+
+        var orders = new List<Order>();
+
+        // A held stock missing from the allocation has a target weight of 0, so it is sold entirely.
+        foreach (var stock in stocks)
+        {
+            var weight = _allocation.GetValueOrDefault(stock);
+            var shares = total * weight / prices[stock] - _holdings.GetValueOrDefault(stock);
+
+            var side = shares < 0 ? Side.Sell : Side.Buy;
+            var quantity = Math.Round(Math.Abs(shares), QuantityDecimals, MidpointRounding.ToEven);
+
+            if (side == Side.Sell)
+            {
+                // Rounding up must never sell more than the shares held.
+                quantity = Math.Min(quantity, _holdings.GetValueOrDefault(stock));
+            }
+
+            if (quantity == 0)
+            {
+                continue;
+            }
+
+            orders.Add(new Order(stock, side, quantity));
+        }
+
+        return orders
+            .OrderBy(order => order.Side == Side.Buy)
+            .ThenBy(order => order.Stock.Symbol, StringComparer.Ordinal)
+            .ToList();
     }
 }
