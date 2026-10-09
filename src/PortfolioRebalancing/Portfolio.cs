@@ -22,4 +22,19 @@ public sealed class Portfolio
 
         _holdings[stock] = _holdings.GetValueOrDefault(stock) + quantity;
     }
+
+    /// <summary>Removes shares of a stock from the portfolio.</summary>
+    public void Sell(Stock stock, decimal quantity)
+    {
+        var remaining = _holdings[stock] - quantity;
+
+        if (remaining == 0)
+        {
+            _holdings.Remove(stock);
+        }
+        else
+        {
+            _holdings[stock] = remaining;
+        }
+    }
 }

@@ -53,4 +53,26 @@ public class PortfolioTests
 
         Assert.Throws<ArgumentNullException>(() => portfolio.Buy(null!, 1m));
     }
+
+    [Fact]
+    public void Sell_ReducesTheSharesHeld()
+    {
+        var portfolio = new Portfolio();
+        portfolio.Buy(Meta(), 5m);
+
+        portfolio.Sell(Meta(), 2m);
+
+        Assert.Equal(3m, portfolio.Holdings[Meta()]);
+    }
+
+    [Fact]
+    public void Sell_RemovesTheStockWhenThePositionIsSoldEntirely()
+    {
+        var portfolio = new Portfolio();
+        portfolio.Buy(Meta(), 5m);
+
+        portfolio.Sell(Meta(), 5m);
+
+        Assert.Empty(portfolio.Holdings);
+    }
 }
