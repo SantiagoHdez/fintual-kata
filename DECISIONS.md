@@ -15,7 +15,7 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 | 3 | Numeric type for money and shares | Decided |
 | 4 | Allocation representation and validation | Decided |
 | 5 | Share granularity (fractional vs whole) and rounding | Decided |
-| 6 | Cash balance and self-financing rebalance | Open |
+| 6 | Cash balance and self-financing rebalance | Decided |
 | 7 | Rebalance output (pure orders vs mutation) | Open |
 | 8 | Edge cases | Open |
 | 9 | Drift tolerance / minimum trade size | Open |
@@ -158,3 +158,25 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 **Tradeoffs accepted:**
 - An equal three-way split cannot be written as 0.3333 x 3; the caller must supply weights that sum exactly to 1 (e.g. 0.3333, 0.3333, 0.3334). A tolerance with normalization is a possible future extension.
 - No separate `Allocation` type; if validation grows, extracting one is the natural next step.
+
+---
+
+## D6: Cash and self-financing
+
+**Status:** Decided.
+
+**Options considered:**
+- Cash: no cash; cash included in total value; cash held but excluded from the target.
+- Funding: self-financing (buys funded only by sells) vs buys may use available cash.
+
+**Decisions:**
+- The portfolio has no cash balance. Total value is the sum of `quantity * CurrentPrice()` over the holdings.
+- Rebalance is self-financing: sell proceeds fund the buys, so total value is conserved.
+- The tiny residual between sell proceeds and buy cost caused by D5's rounding is accepted and documented. Tests compare it with a small tolerance.
+- The design leaves a seam for cash without building it (YAGNI): the amount to be distributed across the allocation is computed in one single place (a `TotalValue`-style calculation), and target values are derived from that amount, not from inline sums. Adding cash later should mean changing that one calculation and adding the field, not reworking the rebalance logic.
+
+**Rationale:** The task describes only stocks and a target distribution, so this is the minimal model that answers it. A cash balance, deposits, and a rule for insufficient cash are real features, but nothing in the task needs them yet.
+
+**Tradeoffs accepted:**
+- Cannot deploy newly deposited money or hold a cash buffer.
+- The rounding residual has nowhere to go; it is tolerated rather than tracked.
