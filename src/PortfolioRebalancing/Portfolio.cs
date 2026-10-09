@@ -4,6 +4,7 @@ namespace PortfolioRebalancing;
 public sealed class Portfolio
 {
     private readonly Dictionary<Stock, decimal> _holdings = [];
+    private Dictionary<Stock, decimal> _allocation = [];
 
     public Portfolio()
     {
@@ -12,6 +13,15 @@ public sealed class Portfolio
 
     /// <summary>The number of shares held of each stock. Read-only, but reflects later changes.</summary>
     public IReadOnlyDictionary<Stock, decimal> Holdings { get; }
+
+    /// <summary>The target weight of each stock, as fractions of 1. Empty until an allocation is set.</summary>
+    public IReadOnlyDictionary<Stock, decimal> Allocation => _allocation.AsReadOnly();
+
+    /// <summary>Sets the target weight of each stock, for example 0.4 for 40%.</summary>
+    public void SetAllocation(IReadOnlyDictionary<Stock, decimal> allocation)
+    {
+        _allocation = new Dictionary<Stock, decimal>(allocation);
+    }
 
     /// <summary>Adds shares of a stock to the portfolio.</summary>
     /// <exception cref="ArgumentOutOfRangeException">The quantity is not positive.</exception>

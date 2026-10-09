@@ -147,4 +147,33 @@ public class PortfolioTests
 
         Assert.Equal(1, calls);
     }
+
+    [Fact]
+    public void Allocation_StartsEmpty()
+    {
+        Assert.Empty(new Portfolio().Allocation);
+    }
+
+    [Fact]
+    public void SetAllocation_StoresTheTargetWeights()
+    {
+        var portfolio = new Portfolio();
+
+        portfolio.SetAllocation(new Dictionary<Stock, decimal> { [Meta()] = 0.4m, [Apple()] = 0.6m });
+
+        Assert.Equal(0.4m, portfolio.Allocation[Meta()]);
+        Assert.Equal(0.6m, portfolio.Allocation[Apple()]);
+    }
+
+    [Fact]
+    public void SetAllocation_IsNotAffectedByLaterChangesToTheCallersDictionary()
+    {
+        var portfolio = new Portfolio();
+        var weights = new Dictionary<Stock, decimal> { [Meta()] = 0.4m, [Apple()] = 0.6m };
+        portfolio.SetAllocation(weights);
+
+        weights[Meta()] = 0.9m;
+
+        Assert.Equal(0.4m, portfolio.Allocation[Meta()]);
+    }
 }
