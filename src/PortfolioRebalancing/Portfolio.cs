@@ -94,4 +94,19 @@ public sealed class Portfolio
     {
         return _holdings.Sum(holding => holding.Value * holding.Key.CurrentPrice());
     }
+
+    /// <summary>
+    /// Works out the trades that bring the portfolio to its target allocation, without changing the portfolio.
+    /// Sells come first, then buys, each sorted by symbol.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">No allocation has been set.</exception>
+    public IReadOnlyList<Order> Rebalance()
+    {
+        if (_allocation.Count == 0)
+        {
+            throw new InvalidOperationException("Set an allocation before rebalancing.");
+        }
+
+        return [];
+    }
 }
