@@ -21,5 +21,6 @@ Take-home kata: a portfolio management module for a personal investments/trading
 - **D2c Mutability:** mutable; `Buy`/`Sell` change holdings and must validate input. Whether `Rebalance` applies trades or only returns them is open (D7).
 - **D3 Numbers:** `decimal` for all money. No `Money` wrapper.
 - **D5 (partial):** fractional shares allowed, so quantities are `decimal`. Rounding precision/mode still open.
+- **D4 Allocation:** `Dictionary<Stock, decimal>` of fractions on `Portfolio`. Validated on set (fail fast): non-empty, each weight in (0, 1], sum exactly 1.
 
 (Keep this list in sync with `DECISIONS.md`.)

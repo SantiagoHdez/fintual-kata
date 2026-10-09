@@ -13,7 +13,7 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 | 1 | Language and project setup | Decided (layout pending) |
 | 2 | Domain model (Stock, price source, holdings/quantities) | Decided |
 | 3 | Numeric type for money and shares | Decided (rounding policy pending) |
-| 4 | Allocation representation and validation | Open |
+| 4 | Allocation representation and validation | Decided |
 | 5 | Share granularity (fractional vs whole) and leftover | Fractional decided; rounding precision pending |
 | 6 | Cash balance and self-financing rebalance | Open |
 | 7 | Rebalance output (pure orders vs mutation) | Open |
@@ -114,3 +114,33 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 - The whole-shares leftover-cash problem does not arise in the main flow.
 
 **Still open:** the precision and rounding mode for quantities, since a split like 1/3 is a repeating decimal.
+
+---
+
+## D4: Allocation representation and validation
+
+**Status:** Decided.
+
+**Options considered:**
+- Weight format: fraction (0.40), percentage (40), or a dedicated value type.
+- Location: `Dictionary<Stock, decimal>` on `Portfolio`, or a separate `Allocation` class.
+- Sum rule: strict sum of 1, or a tolerance with normalization.
+- Validation timing: fail fast when set, or validate at rebalance time.
+
+**Decisions:**
+- Weights are `decimal` fractions (0.40 = 40%).
+- The allocation is a `Dictionary<Stock, decimal>` on the `Portfolio`, mirroring the holdings structure.
+- The weights must sum to exactly 1 (strict, no tolerance).
+- Validation happens when the allocation is set (fail fast), so `Rebalance` can trust it.
+
+**Validation rules enforced on set:**
+- Allocation is not empty.
+- Each weight is greater than 0 and at most 1.
+- No duplicate stocks (guaranteed by the dictionary key).
+- Weights sum to exactly 1.
+
+**Rationale:** Fractions make the math direct (`target value = total * weight`) and avoid off-by-100 bugs. Strict validation is easy to explain and test and fails loudly on bad input. Fail-fast keeps invalid state from ever existing.
+
+**Tradeoffs accepted:**
+- An equal three-way split cannot be written as 0.3333 x 3; the caller must supply weights that sum exactly to 1 (e.g. 0.3333, 0.3333, 0.3334). A tolerance with normalization is a possible future extension.
+- No separate `Allocation` type; if validation grows, extracting one is the natural next step.
