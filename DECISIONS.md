@@ -12,9 +12,9 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 |---|----------|--------|
 | 1 | Language and project setup | Decided (layout pending) |
 | 2 | Domain model (Stock, price source, holdings/quantities) | Decided |
-| 3 | Numeric type for money and shares | Decided (rounding policy pending) |
+| 3 | Numeric type for money and shares | Decided |
 | 4 | Allocation representation and validation | Decided |
-| 5 | Share granularity (fractional vs whole) and leftover | Fractional decided; rounding precision pending |
+| 5 | Share granularity (fractional vs whole) and rounding | Decided |
 | 6 | Cash balance and self-financing rebalance | Open |
 | 7 | Rebalance output (pure orders vs mutation) | Open |
 | 8 | Edge cases | Open |
@@ -91,7 +91,7 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 
 ## D3: Numeric type for money and shares
 
-**Status:** Decided. Rounding policy is pending (see D5).
+**Status:** Decided. Rounding policy is in D5.
 
 **Options considered (money):** `decimal`, `double`, integer minor units, a `Money` wrapper around `decimal`.
 
@@ -101,19 +101,33 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 
 **Quantity type:** `decimal`, since fractional shares are allowed (D5).
 
-**Open:** `decimal` still cannot represent values like 1/3 exactly, so an explicit rounding policy is needed (mode and where it is applied). Tracked in D5.
+**Open:** `decimal` still cannot represent values like 1/3 exactly, so an explicit rounding policy is needed (mode and where it is applied). Resolved in D5.
 
 ---
 
-## D5 (partial): Share granularity
+## D5: Share granularity and rounding
 
-**Decision so far:** Fractional shares are allowed.
+**Status:** Decided.
 
-**Consequences:**
-- Quantities are `decimal`.
-- The whole-shares leftover-cash problem does not arise in the main flow.
+**Options considered:**
+- Granularity: fractional vs whole shares.
+- Precision: no rounding (full `decimal`), fixed N decimals, or configurable.
+- Mode: `ToZero` (truncate), `ToEven` (banker's), `AwayFromZero`.
+- Placement: only on final order quantities, or at every step.
 
-**Still open:** the precision and rounding mode for quantities, since a split like 1/3 is a repeating decimal.
+**Decisions:**
+- Fractional shares are allowed, so quantities are `decimal`.
+- Quantities are rounded to a fixed 4 decimal places.
+- Rounding mode is banker's rounding (`MidpointRounding.ToEven`).
+- Rounding is applied only once, on the final order quantities. All intermediate math (total value, target values, deltas) keeps full `decimal` precision.
+
+**Rationale:** Fractional shares remove the whole-share leftover-cash problem. A fixed precision keeps orders realistic and the API simple. Banker's rounding is unbiased in aggregate. Rounding only at the end avoids compounding errors.
+
+**Tradeoffs accepted:**
+- Banker's rounding can overshoot by up to half a unit of the last place (0.00005 shares). A sell could marginally exceed the shares held, and total buys could marginally exceed total sell proceeds. Consequences to handle:
+  - D8: clamp a sell quantity to the shares actually held.
+  - D6: the self-financing check must tolerate this tiny residual (or define how it is treated).
+- The 4-decimal precision is a fixed assumption, not configurable. Making it a parameter is a possible extension.
 
 ---
 
