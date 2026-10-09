@@ -148,4 +148,38 @@ public class RebalanceTests
 
         Assert.Equal(1.00007m, sell.Quantity);
     }
+
+    [Fact]
+    public void Rebalance_ReadsEachPriceOnlyOnce()
+    {
+        var calls = new Dictionary<string, int>();
+        Stock Counted(string symbol, decimal price) => new(symbol, () =>
+        {
+            calls[symbol] = calls.GetValueOrDefault(symbol) + 1;
+            return price;
+        });
+        var meta = Counted("META", 500m);
+        var apple = Counted("AAPL", 200m);
+        var portfolio = new Portfolio();
+        portfolio.Buy(meta, 10m);
+        portfolio.SetAllocation(Weights((meta, 0.4m), (apple, 0.6m)));
+
+        portfolio.Rebalance();
+
+        Assert.Equal(1, calls["META"]);
+        Assert.Equal(1, calls["AAPL"]);
+    }
+
+    [Fact]
+    public void Rebalance_ThrowsWhenAPriceIsNotPositive()
+    {
+        var broken = new Stock("BROKEN", () => 0m);
+        var portfolio = new Portfolio();
+        portfolio.Buy(Meta(), 1m);
+        portfolio.SetAllocation(Weights((Meta(), 0.5m), (broken, 0.5m)));
+
+        var exception = Assert.Throws<InvalidOperationException>(() => portfolio.Rebalance());
+
+        Assert.Contains("BROKEN", exception.Message);
+    }
 }

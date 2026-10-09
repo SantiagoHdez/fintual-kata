@@ -95,7 +95,18 @@ public sealed class Portfolio
     /// </remarks>
     public decimal TotalValue()
     {
-        return _holdings.Sum(holding => holding.Value * holding.Key.CurrentPrice());
+        return ValueAt(ReadPrices(_holdings.Keys));
+    }
+
+    // Prices can change between calls, so each stock is read once and the result is reused.
+    private static Dictionary<Stock, decimal> ReadPrices(IEnumerable<Stock> stocks)
+    {
+        return stocks.ToDictionary(stock => stock, stock => stock.CurrentPrice());
+    }
+
+    private decimal ValueAt(Dictionary<Stock, decimal> prices)
+    {
+        return _holdings.Sum(holding => holding.Value * prices[holding.Key]);
     }
 
     /// <summary>
@@ -110,7 +121,9 @@ public sealed class Portfolio
             throw new InvalidOperationException("Set an allocation before rebalancing.");
         }
 
-        var total = TotalValue();
+        var stocks = _holdings.Keys.Union(_allocation.Keys).ToList();
+        var prices = ReadPrices(stocks);
+        var total = ValueAt(prices);
 
         if (total == 0)
         {
@@ -120,10 +133,10 @@ public sealed class Portfolio
         var orders = new List<Order>();
 
         // A held stock missing from the allocation has a target weight of 0, so it is sold entirely.
-        foreach (var stock in _holdings.Keys.Union(_allocation.Keys))
+        foreach (var stock in stocks)
         {
             var weight = _allocation.GetValueOrDefault(stock);
-            var shares = total * weight / stock.CurrentPrice() - _holdings.GetValueOrDefault(stock);
+            var shares = total * weight / prices[stock] - _holdings.GetValueOrDefault(stock);
 
             var side = shares < 0 ? Side.Sell : Side.Buy;
             var quantity = Math.Round(Math.Abs(shares), QuantityDecimals, MidpointRounding.ToEven);
