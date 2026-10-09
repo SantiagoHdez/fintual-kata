@@ -20,6 +20,8 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 | 8 | Edge cases | Decided |
 | 9 | Drift tolerance / minimum trade size | Decided |
 | 10 | Testing and documentation style | Decided |
+| 11 | Scenario testing | Decided |
+| 12 | Small JSON CLI | Decided |
 
 ---
 
@@ -54,6 +56,8 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 - C: `Stock` has a symbol plus a price source (`Func<decimal>` / interface) passed at construction. Keeps `stock.CurrentPrice()` as in the spec and stays easy to fake.
 
 **Decision:** C. `Stock` keeps a `CurrentPrice()` method backed by an injected price source.
+
+**Refinement:** the price source is a plain `Func<decimal>` passed to the constructor. No `IPriceSource` interface: it needs no extra type, and tests can pass `() => 100m` or a captured variable to simulate price changes.
 
 **Rationale:** Faithful to the task's wording while remaining testable without a real market feed.
 
@@ -254,12 +258,107 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 - Strategy: test-first vs tests after.
 
 **Decisions:**
-- Layout (A): one solution with a library project in `src/` and a test project in `tests/`. No console demo; the tests demonstrate the behavior. Project names avoid clashing with the `Portfolio` class (proposed: `PortfolioRebalancing` and `PortfolioRebalancing.Tests`).
+- Layout (A): one solution with a library project in `src/` and a test project in `tests/`. No console demo; the tests demonstrate the behavior. (Superseded in part by D12, which adds a small CLI.) Project names avoid clashing with the `Portfolio` class (proposed: `PortfolioRebalancing` and `PortfolioRebalancing.Tests`).
 - Test framework: xUnit with plain `Assert`. FluentAssertions is avoided because it is now commercially licensed.
 - Strategy: TDD. One behavior at a time, with a commit per step so the history tells the story. Planned order: `Stock`, `Portfolio` holdings, allocation validation, `Rebalance`, `Apply`.
 - Tests use a fake price source (the injected source from D2a), so no market feed is needed and "price changes between calls" can be tested.
 - Key scenarios: the spec example (40% META / 60% AAPL); already balanced; held-but-unallocated sold and allocated-but-unheld bought; empty portfolio; invalid allocations; non-positive prices; the rounding residual; `Apply` all-or-nothing; a second `Rebalance` after `Apply` returns an empty list; sell proceeds approximately equal buy cost within tolerance.
 - Documentation: simple XML doc comments on public types and methods. Inline comments are kept simple and used only where the code's intent may not be clear. `DECISIONS.md` is the narrative record. A `README.md` covers build and test instructions, a short description of the algorithm, assumptions and future extensions.
-- The LLM conversation is saved in the repo (e.g. `docs/conversation.md`) before submission.
+- The LLM conversation is saved in the repo (e.g. `docs/conversation.txt`) before submission.
 
 **Rationale:** The standard .NET layout is familiar to reviewers. TDD with small commits shows the reasoning step by step. Keeping comments sparse prevents noise and keeps the real decisions in `DECISIONS.md`.
+
+---
+
+## D11: Scenario testing
+
+**Status:** Decided.
+
+**Options considered:**
+- Style: plain xUnit with Given/When/Then comments; Gherkin with Reqnroll; table-driven `[Theory]` cases.
+- Location: a `Scenarios/` folder in the existing test project (with a trait), or a separate test project.
+- Extra checks: invariant assertions inside each scenario, or property-based tests (FsCheck).
+
+**Decisions:**
+- Plain xUnit, with Given / When / Then comments in each scenario. No new dependency.
+- Scenarios live in a `Scenarios/` folder of the existing test project and carry `[Trait("Category", "Scenario")]`, so they can run on their own: `dotnet test --filter Category=Scenario`.
+- A small `FakeMarket` helper holds prices that tests can change, to express time passing.
+- Invariants are asserted inside the scenarios (weights match the target within rounding, value is conserved within the rounding bound, buys match sells within the same bound). No property-based testing for now.
+
+**Scenarios:**
+1. The spec example (40% META / 60% AAPL), then apply.
+2. Drift over time: a balanced portfolio, prices move, rebalance and apply.
+3. Several cycles of price moves and rebalances.
+4. Changing the target allocation (40/60 to 50/50).
+5. A stock enters the allocation and another leaves it.
+6. Fractional shares across five stocks with awkward prices.
+7. A failed apply changes nothing, then a correct plan works.
+8. A stale plan: prices move between `Rebalance` and `Apply`. The orders are share quantities, so the plan still executes, but the result is off target. Documented behavior: re-plan right before applying.
+9. An empty portfolio: no cash means nothing can be bought (the D6 limitation).
+
+**Rationale:** The unit tests check single rules. Scenarios show the module working through realistic sequences and double as executable documentation of the behavior and its limits.
+
+---
+
+## D12: A small JSON CLI
+
+**Status:** Decided. This reverses the "no console demo" part of D10.
+
+**Options considered:**
+- A: no CLI; the README example and the scenarios are the demo.
+- B: minimal CLI project that reads JSON and prints the rebalance plan as JSON.
+- C: like B, but it also applies the plan and prints the portfolio afterwards.
+- D: a single-file .NET 10 script (`dotnet run demo.cs`) instead of a project.
+
+**Decisions:**
+- B. A new project `src/PortfolioRebalancing.Cli`, added to the solution. It uses only the library's public API, and the library is not changed.
+- Input comes from a file given as the only argument, or from stdin when there is no argument.
+- Output is JSON only, written to stdout. No table format.
+- The logic lives in a function that takes the JSON text and returns the JSON text, so tests can run it without starting a process. `Main` only handles arguments, files and streams.
+- Exit codes: 0 on success, 1 for invalid input or a failed rebalance (message on stderr, nothing on stdout), 2 for wrong usage.
+- Tests live in the existing test project under `Cli/`, which references the CLI project.
+
+**Input:**
+```json
+{
+  "holdings":   [{ "symbol": "META", "quantity": 10 }, { "symbol": "AAPL", "quantity": 5 }],
+  "prices":     { "META": 500, "AAPL": 200 },
+  "allocation": { "META": 0.4, "AAPL": 0.6 }
+}
+```
+
+**Output:**
+```json
+{ "orders": [
+  { "symbol": "META", "side": "Sell", "quantity": 5.2 },
+  { "symbol": "AAPL", "side": "Buy",  "quantity": 13 }
+] }
+```
+
+**Rules:**
+- All three properties are required. Unknown properties are rejected, so a typo such as `alocation` is an error and not silently ignored.
+- Numbers are read as `decimal`, never `double`, to keep the exactness chosen in D3.
+- Every held or allocated symbol needs a price. Symbols are matched ignoring case and surrounding spaces, like `Stock`.
+- A symbol listed twice in `holdings` adds up. A symbol repeated in `prices` or `allocation` (ignoring case) is an error.
+- The library's own validation applies as it does everywhere else (positive quantities and prices, allocation rules).
+
+**Rationale:** It lets a reviewer try the module in seconds without reading C#, and the JSON documents the data contract. It stays small and additive, so the core deliverable is not touched.
+
+**Tradeoffs accepted:**
+- It goes beyond what the task asks, and adds a project to review.
+- Prices from JSON are fixed numbers, so the CLI shows one rebalance and cannot show prices drifting over time. The scenarios cover that.
+- It does not apply the plan (option C was not chosen).
+- Error messages are reworded in plain language. The library's messages are kept but trimmed to their first line. The serializer's messages mention internal type names, so three common problems (an unknown property, a missing required property, and a value of the wrong type or malformed JSON) are translated, with the path of the problem (for example `$.prices.META`). This translation reads the serializer's message text with small regular expressions, which is fragile across .NET versions; the tests pin the exact wording so a change would be caught. The line and position the serializer reports mark where parsing stopped, which is just after the bad value, so the path is the more reliable locator.
+
+---
+
+## Refinements made while implementing
+
+Small changes to earlier decisions that came up in the code. The original text above is kept as it was written.
+
+- **D7: `Apply` runs the orders in the order given.** An earlier idea was to apply sells before buys whatever the input order. It was dropped: `Rebalance` already lists sells first, and extra ordering rules were not needed. `Apply` accepts any `IEnumerable<Order>`.
+- **D7: `Apply` copies back into the same dictionary.** After applying to a working copy, the result is copied into the portfolio's own dictionary, so a `Holdings` view obtained earlier stays valid.
+- **D8: all-or-nothing is shared with `Buy`/`Sell`.** `Apply`, `Buy` and `Sell` use the same private helpers, so there is one copy of the quantity rules.
+- **D8: an empty portfolio still reads the prices of the allocated stocks.** A non-positive price on an allocated stock therefore throws even when there is nothing to trade.
+- **D5: a full sell can exceed 4 decimals.** When a stock is sold entirely and the holding itself has more than 4 decimals (for example 1.00007), the order uses the exact holding, so no sliver of the position is left. This is the "never sell more than held" cap.
+- **D6/D11: the tolerance is a bound, not a constant.** The tests allow buys and sells to differ by half a rounding step per order times its price, instead of a fixed number.
