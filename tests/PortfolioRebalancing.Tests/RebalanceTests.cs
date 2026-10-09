@@ -182,4 +182,39 @@ public class RebalanceTests
 
         Assert.Contains("BROKEN", exception.Message);
     }
+
+    [Fact]
+    public void Rebalance_DoesNotChangeThePortfolio()
+    {
+        var portfolio = new Portfolio();
+        portfolio.Buy(Meta(), 10m);
+        portfolio.Buy(Apple(), 5m);
+        portfolio.SetAllocation(Weights((Meta(), 0.4m), (Apple(), 0.6m)));
+
+        portfolio.Rebalance();
+
+        Assert.Equal(10m, portfolio.Holdings[Meta()]);
+        Assert.Equal(5m, portfolio.Holdings[Apple()]);
+    }
+
+    [Fact]
+    public void Rebalance_BuysCostAboutAsMuchAsSellsRaise()
+    {
+        // Rounding quantities leaves a tiny gap between what is raised and what is spent.
+        var a = new Stock("A", () => 33.33m);
+        var b = new Stock("B", () => 77.77m);
+        var c = new Stock("C", () => 12.34m);
+        var portfolio = new Portfolio();
+        portfolio.Buy(a, 7.5m);
+        portfolio.Buy(b, 3.25m);
+        portfolio.Buy(c, 20m);
+        portfolio.SetAllocation(Weights((a, 0.2m), (b, 0.5m), (c, 0.3m)));
+
+        var orders = portfolio.Rebalance();
+
+        decimal Value(Side side) => orders.Where(order => order.Side == side)
+            .Sum(order => order.Quantity * order.Stock.CurrentPrice());
+        Assert.NotEmpty(orders);
+        Assert.InRange(Math.Abs(Value(Side.Buy) - Value(Side.Sell)), 0m, 0.05m);
+    }
 }
