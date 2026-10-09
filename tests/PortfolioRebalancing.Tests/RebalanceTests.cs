@@ -106,4 +106,46 @@ public class RebalanceTests
             ],
             orders);
     }
+
+    [Theory]
+    [InlineData(3, 16.6667)] // 50 / 3 = 16.66666...
+    [InlineData(200000, 0.0002)] // 50 / 200000 = 0.00025, an exact tie that goes to the even digit
+    public void Rebalance_RoundsBuyQuantitiesToFourDecimalsWithBankersRounding(double price, double expected)
+    {
+        var other = new Stock("OTHER", () => (decimal)price);
+        var portfolio = new Portfolio();
+        portfolio.Buy(Named("HELD"), 1m);
+        portfolio.SetAllocation(Weights((Named("HELD"), 0.5m), (other, 0.5m)));
+
+        var buy = portfolio.Rebalance().Single(order => order.Side == Side.Buy);
+
+        Assert.Equal((decimal)expected, buy.Quantity);
+    }
+
+    [Fact]
+    public void Rebalance_OmitsOrdersThatRoundToZero()
+    {
+        var expensive = new Stock("EXPENSIVE", () => 10_000_000m);
+        var portfolio = new Portfolio();
+        portfolio.Buy(Named("HELD"), 1m);
+        portfolio.SetAllocation(Weights((Named("HELD"), 0.5m), (expensive, 0.5m)));
+
+        var orders = portfolio.Rebalance();
+
+        Assert.Equal([new Order(Named("HELD"), Side.Sell, 0.5m)], orders);
+    }
+
+    [Fact]
+    public void Rebalance_NeverSellsMoreThanIsHeld()
+    {
+        // Rounding 1.00007 to four decimals gives 1.0001, which is more than the shares held.
+        var google = new Stock("GOOG", () => 100m);
+        var portfolio = new Portfolio();
+        portfolio.Buy(google, 1.00007m);
+        portfolio.SetAllocation(Weights((Meta(), 1m)));
+
+        var sell = portfolio.Rebalance().Single(order => order.Side == Side.Sell);
+
+        Assert.Equal(1.00007m, sell.Quantity);
+    }
 }

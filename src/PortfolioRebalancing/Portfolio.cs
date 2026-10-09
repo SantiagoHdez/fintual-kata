@@ -3,6 +3,9 @@ namespace PortfolioRebalancing;
 /// <summary>A set of stock holdings that can be bought and sold.</summary>
 public sealed class Portfolio
 {
+    // Order quantities are rounded to this many decimals, with banker's rounding.
+    private const int QuantityDecimals = 4;
+
     private readonly Dictionary<Stock, decimal> _holdings = [];
     private Dictionary<Stock, decimal> _allocation = [];
 
@@ -122,14 +125,21 @@ public sealed class Portfolio
             var weight = _allocation.GetValueOrDefault(stock);
             var shares = total * weight / stock.CurrentPrice() - _holdings.GetValueOrDefault(stock);
 
-            if (shares < 0)
+            var side = shares < 0 ? Side.Sell : Side.Buy;
+            var quantity = Math.Round(Math.Abs(shares), QuantityDecimals, MidpointRounding.ToEven);
+
+            if (side == Side.Sell)
             {
-                orders.Add(new Order(stock, Side.Sell, -shares));
+                // Rounding up must never sell more than the shares held.
+                quantity = Math.Min(quantity, _holdings.GetValueOrDefault(stock));
             }
-            else if (shares > 0)
+
+            if (quantity == 0)
             {
-                orders.Add(new Order(stock, Side.Buy, shares));
+                continue;
             }
+
+            orders.Add(new Order(stock, side, quantity));
         }
 
         return orders
