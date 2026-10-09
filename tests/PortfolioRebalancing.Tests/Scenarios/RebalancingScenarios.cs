@@ -133,4 +133,58 @@ public class RebalancingScenarios
         Assert.DoesNotContain(apple, portfolio.Holdings.Keys);
         PortfolioAssert.MatchesAllocation(portfolio);
     }
+
+    [Fact]
+    public void FiveStocksWithAwkwardPrices_StayWithinTheRoundingBound()
+    {
+        // Given five stocks with uneven prices and fractional holdings
+        var a = _market.List("A", 33.33m);
+        var b = _market.List("B", 77.77m);
+        var c = _market.List("C", 12.34m);
+        var d = _market.List("D", 245.67m);
+        var e = _market.List("E", 5.55m);
+        var portfolio = new Portfolio();
+        portfolio.Buy(a, 7.5m);
+        portfolio.Buy(b, 3.25m);
+        portfolio.Buy(c, 20m);
+        portfolio.Buy(d, 1.1m);
+        portfolio.Buy(e, 100.5m);
+        portfolio.SetAllocation(Weights((a, 0.1m), (b, 0.2m), (c, 0.3m), (d, 0.25m), (e, 0.15m)));
+        var valueBefore = portfolio.TotalValue();
+
+        // When we rebalance and apply the plan
+        var orders = portfolio.Rebalance();
+        portfolio.Apply(orders);
+
+        // Then quantities have at most four decimals, buys match sells, and the weights are on target
+        Assert.All(orders, order => Assert.Equal(Math.Round(order.Quantity, 4), order.Quantity));
+        PortfolioAssert.BuysMatchSells(orders);
+        PortfolioAssert.ValueIsConserved(valueBefore, portfolio.TotalValue(), orders);
+        PortfolioAssert.MatchesAllocation(portfolio);
+    }
+
+    [Fact]
+    public void FailedApply_ChangesNothingAndACorrectPlanStillWorks()
+    {
+        // Given an unbalanced portfolio and a plan with one impossible order at the end
+        var meta = _market.List("META", 500m);
+        var apple = _market.List("AAPL", 200m);
+        var portfolio = new Portfolio();
+        portfolio.Buy(meta, 10m);
+        portfolio.Buy(apple, 5m);
+        portfolio.SetAllocation(Weights((meta, 0.4m), (apple, 0.6m)));
+        var plan = portfolio.Rebalance();
+        Order[] badPlan = [.. plan, new Order(apple, Side.Sell, 1000m)];
+
+        // When we apply the bad plan
+        Assert.Throws<InvalidOperationException>(() => portfolio.Apply(badPlan));
+
+        // Then the valid orders before the bad one were not applied either
+        Assert.Equal(10m, portfolio.Holdings[meta]);
+        Assert.Equal(5m, portfolio.Holdings[apple]);
+
+        // And the correct plan can still be applied afterwards
+        portfolio.Apply(plan);
+        PortfolioAssert.MatchesAllocation(portfolio);
+    }
 }
