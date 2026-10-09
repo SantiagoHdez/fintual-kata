@@ -34,4 +34,23 @@ public class PortfolioTests
 
         Assert.Equal(3m, portfolio.Holdings[Meta()]);
     }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Buy_RejectsQuantityThatIsNotPositive(double quantity)
+    {
+        var portfolio = new Portfolio();
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => portfolio.Buy(Meta(), (decimal)quantity));
+        Assert.Empty(portfolio.Holdings);
+    }
+
+    [Fact]
+    public void Buy_RejectsNullStock()
+    {
+        var portfolio = new Portfolio();
+
+        Assert.Throws<ArgumentNullException>(() => portfolio.Buy(null!, 1m));
+    }
 }

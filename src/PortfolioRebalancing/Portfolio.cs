@@ -14,8 +14,12 @@ public sealed class Portfolio
     public IReadOnlyDictionary<Stock, decimal> Holdings { get; }
 
     /// <summary>Adds shares of a stock to the portfolio.</summary>
+    /// <exception cref="ArgumentOutOfRangeException">The quantity is not positive.</exception>
     public void Buy(Stock stock, decimal quantity)
     {
+        ArgumentNullException.ThrowIfNull(stock);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
+
         _holdings[stock] = _holdings.GetValueOrDefault(stock) + quantity;
     }
 }
