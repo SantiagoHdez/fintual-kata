@@ -11,10 +11,10 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 | # | Decision | Status |
 |---|----------|--------|
 | 1 | Language and project setup | Decided (layout pending) |
-| 2 | Domain model (Stock, price source, holdings/quantities) | 2a, 2b decided; 2c deferred to D7 |
-| 3 | Numeric type for money and shares | Open |
+| 2 | Domain model (Stock, price source, holdings/quantities) | Decided |
+| 3 | Numeric type for money and shares | Decided (rounding policy pending) |
 | 4 | Allocation representation and validation | Open |
-| 5 | Share granularity (fractional vs whole) and leftover | Open |
+| 5 | Share granularity (fractional vs whole) and leftover | Fractional decided; rounding precision pending |
 | 6 | Cash balance and self-financing rebalance | Open |
 | 7 | Rebalance output (pure orders vs mutation) | Open |
 | 8 | Edge cases | Open |
@@ -44,7 +44,7 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 
 ## D2: Domain model
 
-**Status:** 2a and 2b decided; 2c deferred to D7.
+**Status:** Decided.
 
 ### 2a: How a Stock provides its price
 
@@ -75,4 +75,42 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 
 ### 2c: Can holdings change after construction?
 
-**Status:** Open, deferred to D7. Mutable (`Buy`/`Sell` methods) vs immutable (fixed at construction). The task only asks rebalance to report trades, not execute them, which leans immutable / no public `Buy`/`Sell`.
+**Options considered:**
+- Mutable: public `Buy`/`Sell` change the holdings in place. Natural for an app, but state changes over time and invalid operations (e.g. selling more than owned) must be handled.
+- Immutable: holdings fixed at construction. Simpler to test, but something else must apply trades.
+
+**Decision:** Mutable. The portfolio's holdings change over time through buy and sell operations.
+
+**Rationale:** In a real trading app the holdings do change. Modelling that directly is more faithful than rebuilding the portfolio each time.
+
+**Consequences:**
+- `Buy`/`Sell` must validate input (positive quantity, cannot sell more than owned). Tracked under D8.
+- Whether `Rebalance` itself applies the trades or only returns them is still open in D7.
+
+---
+
+## D3: Numeric type for money and shares
+
+**Status:** Decided. Rounding policy is pending (see D5).
+
+**Options considered (money):** `decimal`, `double`, integer minor units, a `Money` wrapper around `decimal`.
+
+**Decision:** `decimal` for all money (prices, portfolio value, trade amounts). No `Money` wrapper.
+
+**Rationale:** Exact for base-10 values, built into C#, and the idiomatic choice for money. `double` drifts (`0.1 + 0.2 != 0.3`). A `Money` wrapper is over-engineering since the task has no currencies; it can be mentioned as a future extension.
+
+**Quantity type:** `decimal`, since fractional shares are allowed (D5).
+
+**Open:** `decimal` still cannot represent values like 1/3 exactly, so an explicit rounding policy is needed (mode and where it is applied). Tracked in D5.
+
+---
+
+## D5 (partial): Share granularity
+
+**Decision so far:** Fractional shares are allowed.
+
+**Consequences:**
+- Quantities are `decimal`.
+- The whole-shares leftover-cash problem does not arise in the main flow.
+
+**Still open:** the precision and rounding mode for quantities, since a split like 1/3 is a repeating decimal.

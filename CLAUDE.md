@@ -9,6 +9,7 @@ Take-home kata: a portfolio management module for a personal investments/trading
 - This is a pair-programming session. The user makes every design decision; Claude proposes options with advantages and tradeoffs, gives a recommendation, and waits.
 - Present one decision at a time. Do not write production code until the user says so.
 - When a decision is made, record it in `DECISIONS.md` (options, tradeoffs, choice, rationale) and update the summary below.
+- Commit after every advance (each recorded decision or code step) so the history tells the story. Keep commits small and descriptive.
 - Code must be documented with comments explaining the reasoning, since the deliverable is judged on the thought process.
 - LLM conversations used for this task must be shared with the submission. Keep `DECISIONS.md` as a readable trail of the reasoning.
 
@@ -17,6 +18,8 @@ Take-home kata: a portfolio management module for a personal investments/trading
 - **D1 Stack:** C# 14, .NET 10. Project layout still pending.
 - **D2a Price:** `Stock` has a symbol and an injected price source; `stock.CurrentPrice()` as in the spec. Equality by symbol. Rebalance reads each price once (snapshot).
 - **D2b Holdings:** `Dictionary<Stock, quantity>`; expose only a read-only view.
-- **D2c Mutability:** open, deferred to D7.
+- **D2c Mutability:** mutable; `Buy`/`Sell` change holdings and must validate input. Whether `Rebalance` applies trades or only returns them is open (D7).
+- **D3 Numbers:** `decimal` for all money. No `Money` wrapper.
+- **D5 (partial):** fractional shares allowed, so quantities are `decimal`. Rounding precision/mode still open.
 
 (Keep this list in sync with `DECISIONS.md`.)
