@@ -114,4 +114,37 @@ public class PortfolioTests
         Assert.Throws<InvalidOperationException>(() => portfolio.Sell(Meta(), 5.0001m));
         Assert.Equal(5m, portfolio.Holdings[Meta()]);
     }
+
+    [Fact]
+    public void TotalValue_IsZeroForAnEmptyPortfolio()
+    {
+        Assert.Equal(0m, new Portfolio().TotalValue());
+    }
+
+    [Fact]
+    public void TotalValue_SumsQuantityTimesCurrentPrice()
+    {
+        var portfolio = new Portfolio();
+        portfolio.Buy(Meta(500m), 2m);
+        portfolio.Buy(Apple(200m), 3.5m);
+
+        Assert.Equal(1700m, portfolio.TotalValue());
+    }
+
+    [Fact]
+    public void TotalValue_ReadsEachPriceOnce()
+    {
+        var calls = 0;
+        var meta = new Stock("META", () =>
+        {
+            calls++;
+            return 500m;
+        });
+        var portfolio = new Portfolio();
+        portfolio.Buy(meta, 2m);
+
+        portfolio.TotalValue();
+
+        Assert.Equal(1, calls);
+    }
 }

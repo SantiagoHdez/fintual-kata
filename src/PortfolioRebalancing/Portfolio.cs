@@ -49,4 +49,14 @@ public sealed class Portfolio
             _holdings[stock] = remaining;
         }
     }
+
+    /// <summary>The market value of all holdings: shares times current price, summed.</summary>
+    /// <remarks>
+    /// This is the only place that defines the amount to distribute across the allocation.
+    /// If cash is ever added to the portfolio, it would be included here.
+    /// </remarks>
+    public decimal TotalValue()
+    {
+        return _holdings.Sum(holding => holding.Value * holding.Key.CurrentPrice());
+    }
 }
