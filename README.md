@@ -2,7 +2,7 @@
 
 A small portfolio module for a personal investments app. A `Portfolio` holds stocks and a target allocation (for example 40% META, 60% AAPL). `Rebalance()` says which stocks to sell and which to buy so the portfolio matches that allocation.
 
-The reasoning behind each design choice is in [DECISIONS.md](DECISIONS.md), written as a sequence of decisions with options and tradeoffs.
+The reasoning behind each design choice is in [DECISIONS.md](DECISIONS.md), written as a sequence of decisions with options and tradeoffs. The full conversation with the LLM that was used to build it, as the task asks, is in [docs/conversation.txt](docs/conversation.txt).
 
 ## Requirements
 
@@ -85,6 +85,7 @@ src/PortfolioRebalancing.Cli/      small JSON command line (see above)
 tests/PortfolioRebalancing.Tests/  unit tests, Scenarios/ with end-to-end stories, Cli/ tests
 samples/example.json               input for the command line
 DECISIONS.md                       design decisions, options and tradeoffs
+docs/conversation.txt              the LLM conversation this was built in
 CLAUDE.md                          working agreement and conventions for the LLM pair
 ```
 

@@ -67,7 +67,7 @@ Follow the Microsoft conventions: [C# coding conventions](https://learn.microsof
 - **D9 Threshold:** none. Trade whenever the rounded delta is not 0. Tolerance / minimum trade size is a documented future extension (self-financing caveat), not built.
 - **D10 Process:** solution with `src/` library and `tests/` project (proposed names `PortfolioRebalancing`, `PortfolioRebalancing.Tests`). xUnit, plain `Assert` (no FluentAssertions). TDD in small steps, one commit each. Order: Stock, holdings, allocation validation, Rebalance, Apply. Tests use a fake price source.
 - **Comments:** simple XML docs on public types/methods; inline comments only where intent is unclear. No noise.
-- **Deliverables:** `README.md` (build/test, algorithm, assumptions, future extensions) and the conversation transcript in `docs/conversation.md` before submission.
+- **Deliverables:** `README.md` (build/test, algorithm, assumptions, future extensions) and the conversation transcript in `docs/conversation.txt` before submission.
 - **D11 Scenarios:** plain xUnit with Given/When/Then comments in `tests/.../Scenarios/`, trait `Category=Scenario`, a `FakeMarket` helper with changeable prices, invariants asserted inside each scenario (no property-based tests). Nine scenarios listed in `DECISIONS.md`.
 
 - **Refinements:** see the last section of `DECISIONS.md` (Apply order, live `Holdings` view, full-sell cap, empty-portfolio price check).
