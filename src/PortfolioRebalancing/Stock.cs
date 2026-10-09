@@ -19,7 +19,18 @@ public sealed class Stock : IEquatable<Stock>
     public string Symbol { get; }
 
     /// <summary>Returns the last available price.</summary>
-    public decimal CurrentPrice() => _priceSource();
+    /// <exception cref="InvalidOperationException">The price source returned a price that is not positive.</exception>
+    public decimal CurrentPrice()
+    {
+        var price = _priceSource();
+
+        if (price <= 0)
+        {
+            throw new InvalidOperationException($"The price of {Symbol} must be positive, but was {price}.");
+        }
+
+        return price;
+    }
 
     /// <summary>Two stocks are equal when they have the same symbol, whatever their price source.</summary>
     public bool Equals(Stock? other) => other is not null && Symbol == other.Symbol;

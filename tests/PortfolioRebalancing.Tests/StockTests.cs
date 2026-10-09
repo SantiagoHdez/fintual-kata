@@ -59,4 +59,29 @@ public class StockTests
 
         Assert.Equal(2m, holdings[new Stock("meta", () => 1m)]);
     }
+
+    [Fact]
+    public void CurrentPrice_ReadsTheSourceOnEveryCall()
+    {
+        var price = 100m;
+        var stock = new Stock("META", () => price);
+
+        Assert.Equal(100m, stock.CurrentPrice());
+
+        price = 120m;
+
+        Assert.Equal(120m, stock.CurrentPrice());
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5.5)]
+    public void CurrentPrice_ThrowsNamingTheStockWhenPriceIsNotPositive(double price)
+    {
+        var stock = new Stock("META", () => (decimal)price);
+
+        var exception = Assert.Throws<InvalidOperationException>(() => stock.CurrentPrice());
+
+        Assert.Contains("META", exception.Message);
+    }
 }
