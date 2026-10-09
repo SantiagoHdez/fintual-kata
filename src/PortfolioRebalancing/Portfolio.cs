@@ -116,8 +116,10 @@ public sealed class Portfolio
 
         var orders = new List<Order>();
 
-        foreach (var (stock, weight) in _allocation)
+        // A held stock missing from the allocation has a target weight of 0, so it is sold entirely.
+        foreach (var stock in _holdings.Keys.Union(_allocation.Keys))
         {
+            var weight = _allocation.GetValueOrDefault(stock);
             var shares = total * weight / stock.CurrentPrice() - _holdings.GetValueOrDefault(stock);
 
             if (shares < 0)
