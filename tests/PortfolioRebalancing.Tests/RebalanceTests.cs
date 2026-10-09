@@ -26,4 +26,21 @@ public class RebalanceTests
 
         Assert.Empty(portfolio.Rebalance());
     }
+
+    [Fact]
+    public void Rebalance_SellsAndBuysToReachTheTargetAllocation()
+    {
+        // 10 META at 500 and 5 AAPL at 200 are worth 6000. A 40/60 split needs
+        // 2400 of META (4.8 shares) and 3600 of AAPL (18 shares).
+        var portfolio = new Portfolio();
+        portfolio.Buy(Meta(), 10m);
+        portfolio.Buy(Apple(), 5m);
+        portfolio.SetAllocation(Weights((Meta(), 0.4m), (Apple(), 0.6m)));
+
+        var orders = portfolio.Rebalance();
+
+        Assert.Equal(
+            [new Order(Meta(), Side.Sell, 5.2m), new Order(Apple(), Side.Buy, 13m)],
+            orders);
+    }
 }

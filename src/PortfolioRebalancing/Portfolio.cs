@@ -107,6 +107,29 @@ public sealed class Portfolio
             throw new InvalidOperationException("Set an allocation before rebalancing.");
         }
 
-        return [];
+        var total = TotalValue();
+
+        if (total == 0)
+        {
+            return [];
+        }
+
+        var orders = new List<Order>();
+
+        foreach (var (stock, weight) in _allocation)
+        {
+            var shares = total * weight / stock.CurrentPrice() - _holdings.GetValueOrDefault(stock);
+
+            if (shares < 0)
+            {
+                orders.Add(new Order(stock, Side.Sell, -shares));
+            }
+            else if (shares > 0)
+            {
+                orders.Add(new Order(stock, Side.Buy, shares));
+            }
+        }
+
+        return orders;
     }
 }
