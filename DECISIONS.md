@@ -348,6 +348,7 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 - It goes beyond what the task asks, and adds a project to review.
 - Prices from JSON are fixed numbers, so the CLI shows one rebalance and cannot show prices drifting over time. The scenarios cover that.
 - It does not apply the plan (option C was not chosen).
+- Error messages for malformed or incomplete JSON, and for values the library rejects, are the messages of the underlying exceptions, shown as they are. They say what is wrong but are not polished (for example, one names an internal type). Rewording them was not worth the extra code.
 
 ---
 

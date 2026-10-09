@@ -1,0 +1,8 @@
+{
+  "holdings": [
+    { "symbol": "META", "quantity": 10 },
+    { "symbol": "AAPL", "quantity": 5 }
+  ],
+  "prices": { "META": 500, "AAPL": 200 },
+  "allocation": { "META": 0.4, "AAPL": 0.6 }
+}
