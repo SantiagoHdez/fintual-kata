@@ -20,6 +20,7 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 | 8 | Edge cases | Decided |
 | 9 | Drift tolerance / minimum trade size | Decided |
 | 10 | Testing and documentation style | Decided |
+| 11 | Scenario testing | Decided |
 
 ---
 
@@ -265,3 +266,33 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 - The LLM conversation is saved in the repo (e.g. `docs/conversation.md`) before submission.
 
 **Rationale:** The standard .NET layout is familiar to reviewers. TDD with small commits shows the reasoning step by step. Keeping comments sparse prevents noise and keeps the real decisions in `DECISIONS.md`.
+
+---
+
+## D11: Scenario testing
+
+**Status:** Decided.
+
+**Options considered:**
+- Style: plain xUnit with Given/When/Then comments; Gherkin with Reqnroll; table-driven `[Theory]` cases.
+- Location: a `Scenarios/` folder in the existing test project (with a trait), or a separate test project.
+- Extra checks: invariant assertions inside each scenario, or property-based tests (FsCheck).
+
+**Decisions:**
+- Plain xUnit, with Given / When / Then comments in each scenario. No new dependency.
+- Scenarios live in a `Scenarios/` folder of the existing test project and carry `[Trait("Category", "Scenario")]`, so they can run on their own: `dotnet test --filter Category=Scenario`.
+- A small `FakeMarket` helper holds prices that tests can change, to express time passing.
+- Invariants are asserted inside the scenarios (weights match the target within rounding, value is conserved within the rounding bound, buys match sells within the same bound). No property-based testing for now.
+
+**Scenarios:**
+1. The spec example (40% META / 60% AAPL), then apply.
+2. Drift over time: a balanced portfolio, prices move, rebalance and apply.
+3. Several cycles of price moves and rebalances.
+4. Changing the target allocation (40/60 to 50/50).
+5. A stock enters the allocation and another leaves it.
+6. Fractional shares across five stocks with awkward prices.
+7. A failed apply changes nothing, then a correct plan works.
+8. A stale plan: prices move between `Rebalance` and `Apply`. The orders are share quantities, so the plan still executes, but the result is off target. Documented behavior: re-plan right before applying.
+9. An empty portfolio: no cash means nothing can be bought (the D6 limitation).
+
+**Rationale:** The unit tests check single rules. Scenarios show the module working through realistic sequences and double as executable documentation of the behavior and its limits.
