@@ -13,6 +13,45 @@ Take-home kata: a portfolio management module for a personal investments/trading
 - Code must be documented with comments explaining the reasoning, since the deliverable is judged on the thought process.
 - LLM conversations used for this task must be shared with the submission. Keep `DECISIONS.md` as a readable trail of the reasoning.
 
+## Git workflow
+
+- `develop` is the integration branch. Never commit development work directly on `develop` or `main`.
+- Start every piece of development on a new branch cut from `develop`: `feature/<short-name>` for code, `docs/<short-name>` for documentation-only changes.
+- Commit after every advance on the branch (see the working agreement above).
+- When the task is complete, merge the branch into `develop` with `git merge --no-ff` so each feature stays visible in the history, then delete the merged branch locally.
+- Do not push, open PRs, or touch `main` unless the user asks.
+
+## C# 14 / .NET 10 standards
+
+Follow the Microsoft conventions: [C# coding conventions](https://learn.microsoft.com/dotnet/csharp/fundamentals/coding-style/coding-conventions), [identifier naming](https://learn.microsoft.com/dotnet/csharp/fundamentals/coding-style/identifier-names), and the [.NET design guidelines](https://learn.microsoft.com/dotnet/standard/design-guidelines/).
+
+**Project setup**
+- Target `net10.0` with `LangVersion` left at the default (C# 14).
+- Enable `<Nullable>enable</Nullable>`, `<ImplicitUsings>enable</ImplicitUsings>` and `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`. Share settings through `Directory.Build.props`.
+- Use the default `.slnx` solution format that `dotnet new sln` creates on .NET 10.
+- Keep an `.editorconfig` that encodes these conventions, and run `dotnet format` before committing.
+
+**Naming**
+- `PascalCase` for types, methods, properties, events and constants. `camelCase` for parameters and locals. `_camelCase` for private fields. Interfaces start with `I`.
+- Names say what the thing is. No abbreviations beyond well-known ones.
+
+**Layout**
+- Allman braces, 4-space indentation, one statement per line, one type per file named after the type.
+- File-scoped namespaces. `using` directives at the top, outside the namespace, `System` first.
+
+**Language use**
+- Use records for immutable data (`Order`) and classes for objects with identity or behavior (`Stock`, `Portfolio`).
+- Prefer `var` when the type is obvious from the right-hand side, explicit types otherwise. Use target-typed `new()` and collection expressions (`[]`) where they read well.
+- Prefer pattern matching and `is null` / `is not null`. Use string interpolation over concatenation.
+- Validate arguments with the framework helpers: `ArgumentNullException.ThrowIfNull`, `ArgumentOutOfRangeException.ThrowIfNegativeOrZero`, `ArgumentException.ThrowIfNullOrWhiteSpace`.
+- Use C# 14 features (such as the `field` keyword in properties) only where they make the code simpler. Do not use them for their own sake.
+- Expose collections as `IReadOnlyDictionary` / `IReadOnlyList`, never the mutable type.
+- Use `decimal` for money and quantities (D3, D5). Never `double`.
+
+**Documentation**
+- Simple XML docs (`<summary>`, plus `<param>`, `<returns>`, `<exception>` where they add information) on public types and members.
+- Inline comments only where the intent is not clear from the code.
+
 ## Decisions so far
 
 - **D1 Stack:** C# 14, .NET 10. Layout in D10.
