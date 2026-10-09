@@ -6,6 +6,8 @@ public class RebalanceTests
 
     private static Stock Apple(decimal price = 200m) => new("AAPL", () => price);
 
+    private static Stock Named(string symbol) => new(symbol, () => 100m);
+
     private static Dictionary<Stock, decimal> Weights(params (Stock Stock, decimal Weight)[] weights) =>
         weights.ToDictionary(entry => entry.Stock, entry => entry.Weight);
 
@@ -82,6 +84,26 @@ public class RebalanceTests
 
         Assert.Equal(
             [new Order(Meta(), Side.Sell, 1m), new Order(Apple(), Side.Buy, 2.5m)],
+            orders);
+    }
+
+    [Fact]
+    public void Rebalance_ListsSellsBeforeBuysEachSortedBySymbol()
+    {
+        var portfolio = new Portfolio();
+        portfolio.Buy(Named("ZZZ"), 10m);
+        portfolio.Buy(Named("MMM"), 10m);
+        portfolio.SetAllocation(Weights((Named("CCC"), 0.5m), (Named("AAA"), 0.5m)));
+
+        var orders = portfolio.Rebalance();
+
+        Assert.Equal(
+            [
+                new Order(Named("MMM"), Side.Sell, 10m),
+                new Order(Named("ZZZ"), Side.Sell, 10m),
+                new Order(Named("AAA"), Side.Buy, 10m),
+                new Order(Named("CCC"), Side.Buy, 10m),
+            ],
             orders);
     }
 }

@@ -132,6 +132,9 @@ public sealed class Portfolio
             }
         }
 
-        return orders;
+        return orders
+            .OrderBy(order => order.Side == Side.Buy)
+            .ThenBy(order => order.Stock.Symbol, StringComparer.Ordinal)
+            .ToList();
     }
 }
