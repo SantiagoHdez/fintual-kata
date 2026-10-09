@@ -55,10 +55,7 @@ public sealed class Portfolio
     /// <exception cref="ArgumentOutOfRangeException">The quantity is not positive.</exception>
     public void Buy(Stock stock, decimal quantity)
     {
-        ArgumentNullException.ThrowIfNull(stock);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
-
-        _holdings[stock] = _holdings.GetValueOrDefault(stock) + quantity;
+        AddShares(_holdings, stock, quantity);
     }
 
     /// <summary>Removes shares of a stock from the portfolio.</summary>
@@ -66,26 +63,7 @@ public sealed class Portfolio
     /// <exception cref="InvalidOperationException">The portfolio holds fewer shares than requested.</exception>
     public void Sell(Stock stock, decimal quantity)
     {
-        ArgumentNullException.ThrowIfNull(stock);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
-
-        var held = _holdings.GetValueOrDefault(stock);
-
-        if (quantity > held)
-        {
-            throw new InvalidOperationException($"Cannot sell {quantity} of {stock}: only {held} held.");
-        }
-
-        var remaining = held - quantity;
-
-        if (remaining == 0)
-        {
-            _holdings.Remove(stock);
-        }
-        else
-        {
-            _holdings[stock] = remaining;
-        }
+        RemoveShares(_holdings, stock, quantity);
     }
 
     /// <summary>The market value of all holdings: shares times current price, summed.</summary>
@@ -161,19 +139,69 @@ public sealed class Portfolio
             .ToList();
     }
 
-    /// <summary>Executes orders, such as the ones returned by <see cref="Rebalance"/>, in the order given.</summary>
+    /// <summary>
+    /// Executes orders, such as the ones returned by <see cref="Rebalance"/>, in the order given.
+    /// If any order is invalid, none of them is applied.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">An order has a quantity that is not positive.</exception>
+    /// <exception cref="InvalidOperationException">An order sells more shares than are held.</exception>
     public void Apply(IEnumerable<Order> orders)
     {
+        ArgumentNullException.ThrowIfNull(orders);
+
+        // Work on a copy so a failing order leaves the real holdings untouched.
+        var updated = new Dictionary<Stock, decimal>(_holdings);
+
         foreach (var order in orders)
         {
             if (order.Side == Side.Sell)
             {
-                Sell(order.Stock, order.Quantity);
+                RemoveShares(updated, order.Stock, order.Quantity);
             }
             else
             {
-                Buy(order.Stock, order.Quantity);
+                AddShares(updated, order.Stock, order.Quantity);
             }
+        }
+
+        // Copy back into the same dictionary so the Holdings view stays valid.
+        _holdings.Clear();
+
+        foreach (var (stock, quantity) in updated)
+        {
+            _holdings[stock] = quantity;
+        }
+    }
+
+    private static void AddShares(Dictionary<Stock, decimal> holdings, Stock stock, decimal quantity)
+    {
+        ArgumentNullException.ThrowIfNull(stock);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
+
+        holdings[stock] = holdings.GetValueOrDefault(stock) + quantity;
+    }
+
+    private static void RemoveShares(Dictionary<Stock, decimal> holdings, Stock stock, decimal quantity)
+    {
+        ArgumentNullException.ThrowIfNull(stock);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
+
+        var held = holdings.GetValueOrDefault(stock);
+
+        if (quantity > held)
+        {
+            throw new InvalidOperationException($"Cannot sell {quantity} of {stock}: only {held} held.");
+        }
+
+        var remaining = held - quantity;
+
+        if (remaining == 0)
+        {
+            holdings.Remove(stock);
+        }
+        else
+        {
+            holdings[stock] = remaining;
         }
     }
 }
