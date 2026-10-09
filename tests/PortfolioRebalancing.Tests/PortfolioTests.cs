@@ -75,4 +75,43 @@ public class PortfolioTests
 
         Assert.Empty(portfolio.Holdings);
     }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Sell_RejectsQuantityThatIsNotPositive(double quantity)
+    {
+        var portfolio = new Portfolio();
+        portfolio.Buy(Meta(), 5m);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => portfolio.Sell(Meta(), (decimal)quantity));
+        Assert.Equal(5m, portfolio.Holdings[Meta()]);
+    }
+
+    [Fact]
+    public void Sell_RejectsNullStock()
+    {
+        var portfolio = new Portfolio();
+
+        Assert.Throws<ArgumentNullException>(() => portfolio.Sell(null!, 1m));
+    }
+
+    [Fact]
+    public void Sell_RejectsAStockThatIsNotHeld()
+    {
+        var portfolio = new Portfolio();
+        portfolio.Buy(Meta(), 5m);
+
+        Assert.Throws<InvalidOperationException>(() => portfolio.Sell(Apple(), 1m));
+    }
+
+    [Fact]
+    public void Sell_RejectsMoreSharesThanHeld()
+    {
+        var portfolio = new Portfolio();
+        portfolio.Buy(Meta(), 5m);
+
+        Assert.Throws<InvalidOperationException>(() => portfolio.Sell(Meta(), 5.0001m));
+        Assert.Equal(5m, portfolio.Holdings[Meta()]);
+    }
 }

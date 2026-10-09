@@ -24,9 +24,21 @@ public sealed class Portfolio
     }
 
     /// <summary>Removes shares of a stock from the portfolio.</summary>
+    /// <exception cref="ArgumentOutOfRangeException">The quantity is not positive.</exception>
+    /// <exception cref="InvalidOperationException">The portfolio holds fewer shares than requested.</exception>
     public void Sell(Stock stock, decimal quantity)
     {
-        var remaining = _holdings[stock] - quantity;
+        ArgumentNullException.ThrowIfNull(stock);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
+
+        var held = _holdings.GetValueOrDefault(stock);
+
+        if (quantity > held)
+        {
+            throw new InvalidOperationException($"Cannot sell {quantity} of {stock}: only {held} held.");
+        }
+
+        var remaining = held - quantity;
 
         if (remaining == 0)
         {
