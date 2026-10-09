@@ -4,6 +4,7 @@ namespace PortfolioRebalancing;
 public sealed class Portfolio
 {
     private readonly Dictionary<Stock, decimal> _holdings = [];
+    private Dictionary<Stock, decimal> _allocation = [];
 
     public Portfolio()
     {
@@ -12,6 +13,40 @@ public sealed class Portfolio
 
     /// <summary>The number of shares held of each stock. Read-only, but reflects later changes.</summary>
     public IReadOnlyDictionary<Stock, decimal> Holdings { get; }
+
+    /// <summary>The target weight of each stock, as fractions of 1. Empty until an allocation is set.</summary>
+    public IReadOnlyDictionary<Stock, decimal> Allocation => _allocation.AsReadOnly();
+
+    /// <summary>Sets the target weight of each stock, for example 0.4 for 40%.</summary>
+    /// <exception cref="ArgumentException">The allocation is empty or its weights do not sum to exactly 1.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A weight is not greater than 0 and at most 1.</exception>
+    public void SetAllocation(IReadOnlyDictionary<Stock, decimal> allocation)
+    {
+        ArgumentNullException.ThrowIfNull(allocation);
+
+        if (allocation.Count == 0)
+        {
+            throw new ArgumentException("The allocation must contain at least one stock.", nameof(allocation));
+        }
+
+        foreach (var (stock, weight) in allocation)
+        {
+            if (weight is <= 0 or > 1)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(allocation), weight, $"The weight of {stock} must be greater than 0 and at most 1.");
+            }
+        }
+
+        var total = allocation.Values.Sum();
+
+        if (total != 1)
+        {
+            throw new ArgumentException($"The weights must sum to exactly 1, but sum to {total}.", nameof(allocation));
+        }
+
+        _allocation = new Dictionary<Stock, decimal>(allocation);
+    }
 
     /// <summary>Adds shares of a stock to the portfolio.</summary>
     /// <exception cref="ArgumentOutOfRangeException">The quantity is not positive.</exception>
