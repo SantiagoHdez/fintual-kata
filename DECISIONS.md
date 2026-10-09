@@ -55,6 +55,8 @@ Build a `Portfolio` class holding a collection of `Stock`s. Each `Stock` exposes
 
 **Decision:** C. `Stock` keeps a `CurrentPrice()` method backed by an injected price source.
 
+**Refinement:** the price source is a plain `Func<decimal>` passed to the constructor. No `IPriceSource` interface: it needs no extra type, and tests can pass `() => 100m` or a captured variable to simulate price changes.
+
 **Rationale:** Faithful to the task's wording while remaining testable without a real market feed.
 
 **Consequences:**

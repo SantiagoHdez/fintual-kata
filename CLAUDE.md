@@ -55,7 +55,7 @@ Follow the Microsoft conventions: [C# coding conventions](https://learn.microsof
 ## Decisions so far
 
 - **D1 Stack:** C# 14, .NET 10. Layout in D10.
-- **D2a Price:** `Stock` has a symbol and an injected price source; `stock.CurrentPrice()` as in the spec. Equality by symbol. Rebalance reads each price once (snapshot).
+- **D2a Price:** `Stock` has a symbol and an injected price source (a `Func<decimal>`); `stock.CurrentPrice()` as in the spec. Equality by symbol. Rebalance reads each price once (snapshot).
 - **D2b Holdings:** `Dictionary<Stock, quantity>`; expose only a read-only view.
 - **D2c Mutability:** mutable; `Buy`/`Sell` change holdings and must validate input. Whether `Rebalance` applies trades or only returns them is open (D7).
 - **D3 Numbers:** `decimal` for all money. No `Money` wrapper.
